@@ -19,4 +19,14 @@ describe('role navigation policy', () => {
     expect(canAccess('/settings', 'HO_STAFF')).toBe(false)
     expect(canAccess('/settings', 'SALES_REP')).toBe(false)
   })
+
+  it('allows every role to read transfers but restricts transfer creation', () => {
+    const writers: UserRole[] = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER']
+    roles.forEach((role) => {
+      expect(canAccess('/transfers', role)).toBe(true)
+      expect(canAccess('/transfers/in-transit', role)).toBe(true)
+      expect(canAccess('/transfers/new', role)).toBe(writers.includes(role))
+      expect(getNavigationForRole(role).some((item) => item.path === '/transfers')).toBe(true)
+    })
+  })
 })

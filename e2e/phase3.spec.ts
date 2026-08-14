@@ -36,8 +36,10 @@ test('ADMIN searches products, changes price, and reviews URL-backed movement hi
   await page.getByLabel('Movement branch ID').fill('b1')
   await expect(page).toHaveURL(/branch_id=b1/)
   await page.getByLabel('Movement from date').fill('2026-08-01')
-  await expect(page).toHaveURL(/branch_id=b1/)
-  await expect(page).toHaveURL(/from=2026-08-01/)
+  await expect.poll(() => {
+    const url = new URL(page.url())
+    return { branch: url.searchParams.get('branch_id'), from: url.searchParams.get('from') }
+  }).toEqual({ branch: 'b1', from: '2026-08-01' })
   await expect(page.getByText('Opening balance')).toBeVisible()
   await expect(page.getByRole('cell', { name: '13' })).toBeVisible()
 })

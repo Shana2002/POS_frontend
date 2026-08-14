@@ -14,6 +14,7 @@ export const navigation: NavigationItem[] = [
   { label: 'Purchasing', path: '/purchase-orders', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS'] },
   { label: 'Payments', path: '/payments', roles: ['ADMIN', 'HO_STAFF', 'ACCOUNTS'] },
   { label: 'Receivables', path: '/receivables/outstanding', roles: ['ADMIN', 'HO_STAFF', 'ACCOUNTS'] },
+  { label: 'Transfers', path: '/transfers', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS'] },
   { label: 'Reports', path: '/reports/dashboard', roles: ['ADMIN', 'HO_STAFF', 'ACCOUNTS'] },
   { label: 'Users', path: '/users', roles: ['ADMIN'] },
   { label: 'Branches', path: '/branches', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS'] },
@@ -26,6 +27,7 @@ export function getNavigationForRole(role: UserRole): NavigationItem[] {
 }
 
 export function canAccess(path: string, role: UserRole): boolean {
+  if (path === '/transfers/new') return ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER'].includes(role)
   const match = navigation.find((item) => path === item.path || path.startsWith(`${item.path}/`))
   return match ? match.roles.includes(role) : path === '/dashboard'
 }

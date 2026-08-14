@@ -12,8 +12,8 @@ export const stockKeys = {
   movements: (filters: StockFilters) => ['stock', 'movements', filters] as const,
 }
 
-export function useStockLevels(filters: StockFilters) {
-  return useQuery({ queryKey: stockKeys.levels(filters), queryFn: async () => { const response = await request<StockLevel[]>({ method: 'GET', url: '/stock', params: buildStockParams(filters, ['branch_id', 'product_id', 'low_only', 'as_of']) }); return { rows: response.data, meta: response.meta as Pagination | undefined } } })
+export function useStockLevels(filters: StockFilters, enabled = true) {
+  return useQuery({ queryKey: stockKeys.levels(filters), queryFn: async () => { const response = await request<StockLevel[]>({ method: 'GET', url: '/stock', params: buildStockParams(filters, ['branch_id', 'product_id', 'low_only', 'as_of']) }); return { rows: response.data, meta: response.meta as Pagination | undefined } }, enabled })
 }
 export function useStockMatrix(filters: StockFilters) { return useQuery({ queryKey: stockKeys.matrix(filters), queryFn: async () => (await request<StockMatrix>({ method: 'GET', url: '/stock/matrix', params: buildStockParams(filters, ['branch_id', 'product_id', 'as_of']) })).data }) }
 export function useStockValuation(filters: StockFilters, enabled = true) { return useQuery({ queryKey: stockKeys.valuation(filters), queryFn: async () => (await request<StockValuation>({ method: 'GET', url: '/stock/valuation', params: buildStockParams(filters, ['branch_id', 'as_of']) })).data, enabled }) }
