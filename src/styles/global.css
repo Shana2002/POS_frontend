@@ -336,3 +336,66 @@ input[readonly] { background: var(--surface-subtle); color: var(--foreground-mut
   .valuation-stats article, .result-summary article:first-child { border-right: 0; border-bottom: 1px solid var(--border); }
   .opening-actions { flex-direction: column; }
 }
+
+.purchase-page { max-width: 1280px; }
+.purchase-page.wide { max-width: 1450px; }
+.purchase-header { margin-bottom: 20px; }
+.purchase-header h1 { font-size: 42px; }
+.purchase-tabs { margin-bottom: 20px; border-bottom: 1px solid var(--border); display: flex; overflow-x: auto; }
+.purchase-tabs a { min-height: 44px; padding: 0 16px; display: flex; align-items: center; color: var(--foreground-muted); text-decoration: none; font-size: 13px; font-weight: 800; }
+.purchase-tabs a:hover { color: var(--foreground); background: var(--surface-subtle); }
+.purchase-toolbar { margin-bottom: 20px; padding: 14px; border: 1px solid var(--border); background: var(--surface); display: grid; grid-template-columns: 1.2fr 1.2fr 1fr 160px 160px; gap: 10px; align-items: end; }
+.purchase-toolbar.payables { grid-template-columns: 1fr 1fr 180px; }
+.purchase-toolbar label, .po-fields label, .payment-form label, .receipt-form > label { display: grid; gap: 7px; color: var(--foreground-muted); }
+.purchase-toolbar select, .po-fields select, .payment-form select { width: 100%; padding: 0 10px; }
+.po-table small, .po-lines-table small, .payables-total + * small { margin-top: 4px; display: block; color: var(--foreground-muted); }
+.po-status { display: inline-flex; align-items: center; gap: 6px; color: var(--foreground-muted); font-size: 11px; font-weight: 900; white-space: nowrap; }
+.po-status.draft { color: var(--foreground-muted); }
+.po-status.ordered, .po-status.partially-received { color: var(--warning); }
+.po-status.received, .po-status.closed { color: var(--success); }
+.po-status.cancelled { color: var(--danger); }
+.po-editor { border: 1px solid var(--border); background: var(--surface); }
+.po-fields { padding: 18px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.po-line-editor { overflow-x: auto; }
+.po-line { min-width: 780px; padding: 10px 18px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: minmax(280px, 1fr) 150px 180px auto; gap: 10px; align-items: center; }
+.po-line.heading { min-height: 42px; background: var(--surface-subtle); color: var(--foreground-muted); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+.po-line select { min-height: 40px; padding: 0 10px; background: var(--surface); color: var(--foreground); border: 1px solid var(--border-strong); border-radius: 8px; }
+.po-line.invalid { border-left: 4px solid var(--danger); background: color-mix(in srgb, var(--danger) 5%, var(--surface)); }
+.po-editor-actions { padding: 18px; display: flex; justify-content: space-between; gap: 12px; }
+.po-editor > .form-message, .po-editor > .inline-error { margin: 0 18px 18px; }
+.po-summary { margin-bottom: 20px; border: 1px solid var(--border); background: var(--surface); display: grid; grid-template-columns: repeat(6, 1fr); }
+.po-summary article { min-height: 98px; padding: 18px; border-right: 1px solid var(--border); display: grid; align-content: space-between; gap: 12px; }
+.po-summary article:last-child { border-right: 0; }
+.po-summary article > span:first-child { color: var(--foreground-muted); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+.payment-history { margin-top: 28px; }
+.payment-history h2 { font-size: 20px; }
+.purchase-modal { width: min(100%, 900px); }
+.receipt-form, .payment-form { display: grid; gap: 16px; }
+.receipt-form > p { margin-top: 0; }
+.receipt-lines { overflow-x: auto; border: 1px solid var(--border); }
+.receipt-line { min-width: 720px; padding: 10px 12px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: minmax(190px, 1fr) 90px 100px 100px 160px; gap: 10px; align-items: start; }
+.receipt-line.heading { background: var(--surface-subtle); color: var(--foreground-muted); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+.receipt-line strong small { display: block; color: var(--foreground-muted); }
+.receipt-line label { display: grid; gap: 4px; }
+.field-error { min-height: 13px; color: var(--danger); font-size: 11px; font-weight: 500; }
+.receipt-success, .payment-result { display: grid; gap: 18px; }
+.balance-before { min-height: 82px; padding: 16px; border: 1px solid var(--border); background: var(--surface-subtle); display: grid; align-content: space-between; }
+.balance-before span { color: var(--foreground-muted); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+.balance-before strong { font-size: 22px; }
+.payment-result dl { margin: 0; }
+.payment-result dl div { padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+.payment-result dd { margin: 0; font-weight: 900; }
+.payables-total { min-height: 100px; margin-bottom: 18px; padding: 20px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.payables-total span { color: var(--foreground-muted); font-weight: 800; }
+.payables-total strong { font-size: 24px; }
+@media (max-width: 1050px) {
+  .purchase-toolbar { grid-template-columns: 1fr 1fr; }
+  .po-fields, .po-summary { grid-template-columns: 1fr 1fr; }
+  .po-summary article { border-bottom: 1px solid var(--border); }
+}
+@media (max-width: 760px) {
+  .purchase-header h1 { font-size: 34px; }
+  .purchase-toolbar, .purchase-toolbar.payables, .po-fields, .po-summary { grid-template-columns: 1fr; }
+  .po-summary article { border-right: 0; }
+  .po-editor-actions, .payables-total { align-items: stretch; flex-direction: column; }
+}
