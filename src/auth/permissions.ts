@@ -18,6 +18,7 @@ export const navigation: NavigationItem[] = [
   { label: 'Samples', path: '/samples', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS'] },
   { label: 'Disposals', path: '/disposals', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS'] },
   { label: 'Stock counts', path: '/stock-counts', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS'] },
+  { label: 'Expenses', path: '/expenses', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS'] },
   { label: 'Reports', path: '/reports/dashboard', roles: ['ADMIN', 'HO_STAFF', 'ACCOUNTS'] },
   { label: 'Users', path: '/users', roles: ['ADMIN'] },
   { label: 'Branches', path: '/branches', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS'] },
@@ -33,6 +34,7 @@ export function canAccess(path: string, role: UserRole): boolean {
   if (path === '/transfers/new') return ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER'].includes(role)
   if (path === '/samples/new') return ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP'].includes(role)
   if (path === '/disposals/new' || path === '/stock-counts/new') return ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER'].includes(role)
+  if (path === '/expenses/new') return ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS'].includes(role)
   const match = navigation.find((item) => path === item.path || path.startsWith(`${item.path}/`))
   return match ? match.roles.includes(role) : path === '/dashboard'
 }

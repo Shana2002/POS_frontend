@@ -13,6 +13,7 @@ import { InvoiceDetailPage, InvoiceEditorPage, InvoicesPage, PosPage } from '../
 import { AgingPage, OutstandingReceivablesPage, PaymentDetailPage, PaymentsPage, RecordPaymentPage } from '../features/payments/PaymentPages'
 import { InTransitPage, TransferDetailPage, TransferEditorPage, TransfersPage } from '../features/transfers/TransferPages'
 import { DisposalCreatePage, DisposalDetailPage, DisposalsPage, SampleCreatePage, SampleDetailPage, SamplesPage, StockCountCreatePage, StockCountDetailPage, StockCountsPage } from '../features/inventory-operations/InventoryOperationPages'
+import { ExpenseCreatePage, ExpenseDetailPage, ExpensesPage } from '../features/expenses/ExpensePages'
 import { getNavigationForRole } from '../auth/permissions'
 
 const adminRoles = ['ADMIN']
@@ -24,6 +25,7 @@ const transferWriteRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER']
 const inventoryReadRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS']
 const inventoryWriteRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP']
 const disposalWriteRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER']
+const expenseRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS']
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -77,8 +79,11 @@ export const router = createBrowserRouter([
       { path: '/stock-counts', element: <RoleRoute roles={['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS']}><StockCountsPage /></RoleRoute> },
       { path: '/stock-counts/new', element: <RoleRoute roles={disposalWriteRoles}><StockCountCreatePage /></RoleRoute> },
       { path: '/stock-counts/:id', element: <RoleRoute roles={['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS']}><StockCountDetailPage /></RoleRoute> },
+      { path: '/expenses', element: <RoleRoute roles={expenseRoles}><ExpensesPage /></RoleRoute> },
+      { path: '/expenses/new', element: <RoleRoute roles={expenseRoles}><ExpenseCreatePage /></RoleRoute> },
+      { path: '/expenses/:id', element: <RoleRoute roles={expenseRoles}><ExpenseDetailPage /></RoleRoute> },
       { path: '/audit-log', element: <RoleRoute roles={adminRoles}><AuthenticatedRoutePage title="Audit log" /></RoleRoute> },
-      ...getNavigationForRole('ADMIN').filter((item) => !['/dashboard', '/pos', '/payments', '/transfers', '/samples', '/disposals', '/stock-counts', '/users', '/branches', '/products', '/customers', '/suppliers', '/expense-categories', '/stock', '/purchase-orders', '/settings', '/audit-log'].includes(item.path)).map((item) => ({ path: item.path, element: <AuthenticatedRoutePage title={item.label} /> })),
+      ...getNavigationForRole('ADMIN').filter((item) => !['/dashboard', '/pos', '/payments', '/transfers', '/samples', '/disposals', '/stock-counts', '/expenses', '/users', '/branches', '/products', '/customers', '/suppliers', '/expense-categories', '/stock', '/purchase-orders', '/settings', '/audit-log'].includes(item.path)).map((item) => ({ path: item.path, element: <AuthenticatedRoutePage title={item.label} /> })),
       { path: '/account', element: <AccountPage /> },
     ],
   },

@@ -29,4 +29,13 @@ describe('role navigation policy', () => {
       expect(getNavigationForRole(role).some((item) => item.path === '/transfers')).toBe(true)
     })
   })
+
+  it('shows expenses only to operational finance roles', () => {
+    const expenseRoles: UserRole[] = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS']
+    roles.forEach((role) => {
+      expect(canAccess('/expenses', role)).toBe(expenseRoles.includes(role))
+      expect(canAccess('/expenses/new', role)).toBe(expenseRoles.includes(role))
+      expect(getNavigationForRole(role).some((item) => item.path === '/expenses')).toBe(expenseRoles.includes(role))
+    })
+  })
 })

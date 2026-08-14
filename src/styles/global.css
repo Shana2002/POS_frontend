@@ -614,6 +614,7 @@ input[readonly] { background: var(--surface-subtle); color: var(--foreground-mut
 .operation-tabs a { min-height: 44px; padding: 0 16px; display: flex; align-items: center; color: var(--foreground-muted); text-decoration: none; font-size: 13px; font-weight: 800; }
 .operation-tabs a:hover { color: var(--foreground); background: var(--surface-subtle); }
 .operation-toolbar { margin-bottom: 20px; padding: 14px; border: 1px solid var(--border); background: var(--surface); display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: end; }
+.operation-toolbar.expense-toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .operation-toolbar label, .operation-form label, .count-fields label { display: grid; gap: 7px; color: var(--foreground-muted); }
 .operation-toolbar select, .operation-form select, .count-fields select { width: 100%; padding: 0 10px; }
 .operation-status { display: inline-flex; align-items: center; gap: 6px; color: var(--foreground-muted); font-size: 11px; font-weight: 900; text-transform: uppercase; }
@@ -625,6 +626,8 @@ input[readonly] { background: var(--surface-subtle); color: var(--foreground-mut
 .operation-form { max-width: 760px; padding: 24px; border: 1px solid var(--border); background: var(--surface); display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .operation-form .wide-field, .operation-form .form-consequence { grid-column: span 2; }
 .operation-form textarea { min-height: 90px; resize: vertical; }
+.reason-field { display: grid; gap: 8px; margin-top: 18px; text-align: left; }
+.reason-field textarea { min-height: 96px; resize: vertical; }
 .form-consequence, .pending-notice, .posted-notice { padding: 14px; border: 1px solid var(--warning); border-left-width: 5px; background: color-mix(in srgb, var(--warning) 7%, var(--surface)); color: var(--warning); font-weight: 800; line-height: 1.5; }
 .form-consequence.neutral { border-color: var(--border-strong); background: var(--surface-subtle); color: var(--foreground-muted); }
 .posted-notice { border-color: var(--success); background: color-mix(in srgb, var(--success) 7%, var(--surface)); color: var(--success); }
