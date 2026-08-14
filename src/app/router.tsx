@@ -5,6 +5,7 @@ import { LoginPage } from '../pages/LoginPage'
 import { AuthenticatedRoutePage, DashboardPage, ForbiddenPage, UnauthorizedPage } from '../pages/AuthPages'
 import { AccountPage } from '../pages/AccountPage'
 import { UsersPage, BranchesPage, SettingsPage } from '../features/admin/AdminPages'
+import { ProductDetailPage, ProductsPage } from '../features/products/ProductPages'
 import { getNavigationForRole } from '../auth/permissions'
 
 const adminRoles = ['ADMIN']
@@ -21,8 +22,10 @@ export const router = createBrowserRouter([
       { path: '/users', element: <RoleRoute roles={adminRoles}><UsersPage /></RoleRoute> },
       { path: '/branches', element: <BranchesPage /> },
       { path: '/settings', element: <RoleRoute roles={adminRoles}><SettingsPage /></RoleRoute> },
+      { path: '/products', element: <ProductsPage /> },
+      { path: '/products/:id', element: <ProductDetailPage /> },
       { path: '/audit-log', element: <RoleRoute roles={adminRoles}><AuthenticatedRoutePage title="Audit log" /></RoleRoute> },
-      ...getNavigationForRole('ADMIN').filter((item) => !['/dashboard', '/users', '/branches', '/settings', '/audit-log'].includes(item.path)).map((item) => ({ path: item.path, element: <AuthenticatedRoutePage title={item.label} /> })),
+      ...getNavigationForRole('ADMIN').filter((item) => !['/dashboard', '/users', '/branches', '/products', '/settings', '/audit-log'].includes(item.path)).map((item) => ({ path: item.path, element: <AuthenticatedRoutePage title={item.label} /> })),
       { path: '/account', element: <AccountPage /> },
     ],
   },
