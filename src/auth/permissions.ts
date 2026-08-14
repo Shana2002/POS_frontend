@@ -5,6 +5,7 @@ export type NavigationItem = { label: string; path: string; roles: UserRole[] }
 export const navigation: NavigationItem[] = [
   { label: 'Dashboard', path: '/dashboard', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS'] },
   { label: 'Sales', path: '/pos', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP'] },
+  { label: 'Invoices', path: '/invoices', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP'] },
   { label: 'Products', path: '/products', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS'] },
   { label: 'Customers', path: '/customers', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS'] },
   { label: 'Suppliers', path: '/suppliers', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS'] },
