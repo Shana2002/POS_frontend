@@ -14,7 +14,7 @@ export async function getCurrentUser(): Promise<User> {
 }
 
 export async function logout(): Promise<void> {
-  try { await request<{ message: string }>({ method: 'POST', url: '/auth/logout' }) } finally { clearTokens() }
+  try { await request<{ message: string }>({ method: 'POST', url: '/auth/logout' }) } finally { clearTokens(false) }
 }
 
 export async function changePassword(current_password: string, new_password: string): Promise<ChangePasswordResponse> {

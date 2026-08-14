@@ -48,7 +48,7 @@ export const router = createBrowserRouter([
       { path: '/customers/:id', element: <CustomerDetailPage /> },
       { path: '/suppliers', element: <SuppliersPage /> },
       { path: '/suppliers/:id', element: <SupplierDetailPage /> },
-      { path: '/expense-categories', element: <ExpenseCategoriesPage /> },
+      { path: '/expense-categories', element: <RoleRoute roles={['ADMIN', 'HO_STAFF', 'ACCOUNTS']}><ExpenseCategoriesPage /></RoleRoute> },
       { path: '/stock', element: <StockLevelsPage /> },
       { path: '/stock/matrix', element: <StockMatrixPage /> },
       { path: '/stock/movements', element: <StockMovementsPage /> },

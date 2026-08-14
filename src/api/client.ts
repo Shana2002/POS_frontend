@@ -39,11 +39,12 @@ export function setTokens(tokens: { accessToken: string; refreshToken?: string }
   if (refreshToken) localStorage.setItem('oxiaura_refresh_token', refreshToken)
 }
 
-export function clearTokens(): void {
+export function clearTokens(notify = true): void {
   accessToken = null
   refreshToken = null
   localStorage.removeItem('oxiaura_access_token')
   localStorage.removeItem('oxiaura_refresh_token')
+  if (notify) window.dispatchEvent(new Event('oxiaura:auth-cleared'))
 }
 
 api.interceptors.request.use((config) => {
@@ -70,7 +71,7 @@ async function refreshAccessToken(): Promise<string | null> {
 
 api.interceptors.response.use(undefined, async (error: AxiosError<ApiErrorEnvelope>) => {
   const config = error.config as (AxiosRequestConfig & { _retry?: boolean }) | undefined
-  if (error.response?.status === 401 && config && !config._retry && !config.url?.endsWith('/auth/refresh')) {
+  if (error.response?.status === 401 && config && !config._retry && !config.url?.endsWith('/auth/refresh') && !config.url?.endsWith('/health')) {
     config._retry = true
     const token = await refreshAccessToken()
     if (token) {

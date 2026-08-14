@@ -1,10 +1,16 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { changePassword, login, logout } from './authApi'
 import { useSession } from './useSession'
 import { AuthContext, type AuthContextValue } from './authContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const session = useSession()
+  const { setStatus, setUser } = session
+  useEffect(() => {
+    const clearSession = () => { setUser(null); setStatus('unauthenticated') }
+    window.addEventListener('oxiaura:auth-cleared', clearSession)
+    return () => window.removeEventListener('oxiaura:auth-cleared', clearSession)
+  }, [setStatus, setUser])
   const value: AuthContextValue = {
     status: session.status,
     user: session.user,

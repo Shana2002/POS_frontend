@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canAccess, getDefaultRoute, getNavigationForRole } from '../auth/permissions'
+import { canAccess, getDefaultRoute, getNavigationForRole, getRolesForPath, navigation } from '../auth/permissions'
 import type { UserRole } from '../auth/types'
 
 const roles: UserRole[] = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS']
@@ -45,5 +45,16 @@ describe('role navigation policy', () => {
       expect(canAccess('/reports/profit-loss', role)).toBe(reportRoles.includes(role))
       expect(getNavigationForRole(role).some((item) => item.path === '/reports/dashboard')).toBe(reportRoles.includes(role))
     })
+  })
+
+  it('uses one policy for navigation and direct route access', () => {
+    navigation.forEach((item) => {
+      expect(getRolesForPath(item.path)).toEqual(item.roles)
+      roles.forEach((role) => expect(canAccess(item.path, role)).toBe(item.roles.includes(role)))
+    })
+
+    expect(getRolesForPath('/expense-categories')).toEqual(['ADMIN', 'HO_STAFF', 'ACCOUNTS'])
+    expect(getRolesForPath('/transfers/new')).toEqual(['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER'])
+    expect(getRolesForPath('/reports/profit-loss')).toEqual(['ADMIN', 'HO_STAFF', 'ACCOUNTS'])
   })
 })

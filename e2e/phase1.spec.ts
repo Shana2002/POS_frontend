@@ -1,6 +1,15 @@
 import { expect, test } from '@playwright/test'
 
+const dashboard = { from: '2026-08-01', to: '2026-08-14', branch_id: null, net_revenue: '0.00', collected: '0.00', outstanding_receivable: '0.00', discounts_given: '0.00', invoices_issued: 0, inventory_units: '0', inventory_value: '0.00', total_expenses: '0.00' }
+
+async function mockShellDependencies(page: import('@playwright/test').Page) {
+  await page.route('**/api/v1/health', (route) => route.fulfill({ json: { success: true, data: { status: 'ok', db: 'ok' } } }))
+  await page.route('**/api/v1/branches?**', (route) => route.fulfill({ json: { success: true, data: [], meta: { page: 1, pages: 1 } } }))
+  await page.route('**/api/v1/reports/dashboard**', (route) => route.fulfill({ json: { success: true, data: dashboard } }))
+}
+
 test('logs in, shows the protected shell, and logs out', async ({ page }) => {
+  await mockShellDependencies(page)
   await page.route('**/api/v1/auth/login', async (route) => route.fulfill({ json: { success: true, data: { access_token: 'access-1', refresh_token: 'refresh-1', user: { id: 'u1', full_name: 'Asha Perera', email: 'asha@oxiaura.test', role: 'SALES_REP', branch_id: 'BR-01', is_active: true } } } }))
   await page.route('**/api/v1/auth/logout', async (route) => route.fulfill({ json: { success: true, data: { message: 'Logged out.' } } }))
   await page.goto('/login')
@@ -17,6 +26,7 @@ test('logs in, shows the protected shell, and logs out', async ({ page }) => {
 })
 
 test('refreshes an expired session once and restores the protected request', async ({ page }) => {
+  await mockShellDependencies(page)
   let meAttempts = 0
   let refreshAttempts = 0
   await page.addInitScript(() => {
