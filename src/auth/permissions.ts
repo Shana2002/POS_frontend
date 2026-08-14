@@ -31,6 +31,7 @@ export function getNavigationForRole(role: UserRole): NavigationItem[] {
 }
 
 export function canAccess(path: string, role: UserRole): boolean {
+  if (path.startsWith('/reports/')) return ['ADMIN', 'HO_STAFF', 'ACCOUNTS'].includes(role)
   if (path === '/transfers/new') return ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER'].includes(role)
   if (path === '/samples/new') return ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP'].includes(role)
   if (path === '/disposals/new' || path === '/stock-counts/new') return ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER'].includes(role)

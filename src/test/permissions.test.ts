@@ -38,4 +38,12 @@ describe('role navigation policy', () => {
       expect(getNavigationForRole(role).some((item) => item.path === '/expenses')).toBe(expenseRoles.includes(role))
     })
   })
+
+  it('restricts dedicated reports to head-office and finance roles', () => {
+    const reportRoles: UserRole[] = ['ADMIN', 'HO_STAFF', 'ACCOUNTS']
+    roles.forEach((role) => {
+      expect(canAccess('/reports/profit-loss', role)).toBe(reportRoles.includes(role))
+      expect(getNavigationForRole(role).some((item) => item.path === '/reports/dashboard')).toBe(reportRoles.includes(role))
+    })
+  })
 })
