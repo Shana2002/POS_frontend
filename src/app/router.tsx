@@ -15,6 +15,7 @@ import { InTransitPage, TransferDetailPage, TransferEditorPage, TransfersPage } 
 import { DisposalCreatePage, DisposalDetailPage, DisposalsPage, SampleCreatePage, SampleDetailPage, SamplesPage, StockCountCreatePage, StockCountDetailPage, StockCountsPage } from '../features/inventory-operations/InventoryOperationPages'
 import { ExpenseCreatePage, ExpenseDetailPage, ExpensesPage } from '../features/expenses/ExpensePages'
 import { DashboardPage, ReportPage } from '../features/reports/ReportPages'
+import { AuditLogPage } from '../features/audit/AuditLogPage'
 import { getNavigationForRole } from '../auth/permissions'
 
 const adminRoles = ['ADMIN']
@@ -85,7 +86,7 @@ export const router = createBrowserRouter([
       { path: '/expenses/new', element: <RoleRoute roles={expenseRoles}><ExpenseCreatePage /></RoleRoute> },
       { path: '/expenses/:id', element: <RoleRoute roles={expenseRoles}><ExpenseDetailPage /></RoleRoute> },
       { path: '/reports/:name', element: <RoleRoute roles={reportRoles}><ReportPage /></RoleRoute> },
-      { path: '/audit-log', element: <RoleRoute roles={adminRoles}><AuthenticatedRoutePage title="Audit log" /></RoleRoute> },
+      { path: '/audit-log', element: <RoleRoute roles={adminRoles}><AuditLogPage /></RoleRoute> },
       ...getNavigationForRole('ADMIN').filter((item) => !['/dashboard', '/pos', '/payments', '/transfers', '/samples', '/disposals', '/stock-counts', '/expenses', '/reports/dashboard', '/users', '/branches', '/products', '/customers', '/suppliers', '/expense-categories', '/stock', '/purchase-orders', '/settings', '/audit-log'].includes(item.path)).map((item) => ({ path: item.path, element: <AuthenticatedRoutePage title={item.label} /> })),
       { path: '/account', element: <AccountPage /> },
     ],
