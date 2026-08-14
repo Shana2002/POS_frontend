@@ -12,6 +12,7 @@ import { PayablesPage, PurchaseOrderDetailPage, PurchaseOrderEditorPage, Purchas
 import { InvoiceDetailPage, InvoiceEditorPage, InvoicesPage, PosPage } from '../features/invoices/InvoicePages'
 import { AgingPage, OutstandingReceivablesPage, PaymentDetailPage, PaymentsPage, RecordPaymentPage } from '../features/payments/PaymentPages'
 import { InTransitPage, TransferDetailPage, TransferEditorPage, TransfersPage } from '../features/transfers/TransferPages'
+import { DisposalCreatePage, DisposalDetailPage, DisposalsPage, SampleCreatePage, SampleDetailPage, SamplesPage, StockCountCreatePage, StockCountDetailPage, StockCountsPage } from '../features/inventory-operations/InventoryOperationPages'
 import { getNavigationForRole } from '../auth/permissions'
 
 const adminRoles = ['ADMIN']
@@ -20,6 +21,9 @@ const salesRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP']
 const paymentRoles = ['ADMIN', 'HO_STAFF', 'ACCOUNTS']
 const transferReadRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS']
 const transferWriteRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER']
+const inventoryReadRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS']
+const inventoryWriteRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP']
+const disposalWriteRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER']
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -64,8 +68,17 @@ export const router = createBrowserRouter([
       { path: '/transfers/new', element: <RoleRoute roles={transferWriteRoles}><TransferEditorPage /></RoleRoute> },
       { path: '/transfers/in-transit', element: <RoleRoute roles={transferReadRoles}><InTransitPage /></RoleRoute> },
       { path: '/transfers/:id', element: <RoleRoute roles={transferReadRoles}><TransferDetailPage /></RoleRoute> },
+      { path: '/samples', element: <RoleRoute roles={inventoryReadRoles}><SamplesPage /></RoleRoute> },
+      { path: '/samples/new', element: <RoleRoute roles={inventoryWriteRoles}><SampleCreatePage /></RoleRoute> },
+      { path: '/samples/:id', element: <RoleRoute roles={inventoryReadRoles}><SampleDetailPage /></RoleRoute> },
+      { path: '/disposals', element: <RoleRoute roles={['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS']}><DisposalsPage /></RoleRoute> },
+      { path: '/disposals/new', element: <RoleRoute roles={disposalWriteRoles}><DisposalCreatePage /></RoleRoute> },
+      { path: '/disposals/:id', element: <RoleRoute roles={['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS']}><DisposalDetailPage /></RoleRoute> },
+      { path: '/stock-counts', element: <RoleRoute roles={['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS']}><StockCountsPage /></RoleRoute> },
+      { path: '/stock-counts/new', element: <RoleRoute roles={disposalWriteRoles}><StockCountCreatePage /></RoleRoute> },
+      { path: '/stock-counts/:id', element: <RoleRoute roles={['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS']}><StockCountDetailPage /></RoleRoute> },
       { path: '/audit-log', element: <RoleRoute roles={adminRoles}><AuthenticatedRoutePage title="Audit log" /></RoleRoute> },
-      ...getNavigationForRole('ADMIN').filter((item) => !['/dashboard', '/pos', '/payments', '/transfers', '/users', '/branches', '/products', '/customers', '/suppliers', '/expense-categories', '/stock', '/purchase-orders', '/settings', '/audit-log'].includes(item.path)).map((item) => ({ path: item.path, element: <AuthenticatedRoutePage title={item.label} /> })),
+      ...getNavigationForRole('ADMIN').filter((item) => !['/dashboard', '/pos', '/payments', '/transfers', '/samples', '/disposals', '/stock-counts', '/users', '/branches', '/products', '/customers', '/suppliers', '/expense-categories', '/stock', '/purchase-orders', '/settings', '/audit-log'].includes(item.path)).map((item) => ({ path: item.path, element: <AuthenticatedRoutePage title={item.label} /> })),
       { path: '/account', element: <AccountPage /> },
     ],
   },
