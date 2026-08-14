@@ -13,6 +13,7 @@ export const navigation: NavigationItem[] = [
   { label: 'Stock', path: '/stock', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS'] },
   { label: 'Purchasing', path: '/purchase-orders', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS'] },
   { label: 'Payments', path: '/payments', roles: ['ADMIN', 'HO_STAFF', 'ACCOUNTS'] },
+  { label: 'Receivables', path: '/receivables/outstanding', roles: ['ADMIN', 'HO_STAFF', 'ACCOUNTS'] },
   { label: 'Reports', path: '/reports/dashboard', roles: ['ADMIN', 'HO_STAFF', 'ACCOUNTS'] },
   { label: 'Users', path: '/users', roles: ['ADMIN'] },
   { label: 'Branches', path: '/branches', roles: ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP', 'ACCOUNTS'] },

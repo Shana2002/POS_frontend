@@ -10,11 +10,13 @@ import { CustomerDetailPage, CustomersPage, ExpenseCategoriesPage, SupplierDetai
 import { OpeningBalancePage, StockLevelsPage, StockMatrixPage, StockMovementsPage, StockValuationPage } from '../features/stock/StockPages'
 import { PayablesPage, PurchaseOrderDetailPage, PurchaseOrderEditorPage, PurchaseOrdersPage } from '../features/purchasing/PurchasePages'
 import { InvoiceDetailPage, InvoiceEditorPage, InvoicesPage, PosPage } from '../features/invoices/InvoicePages'
+import { AgingPage, OutstandingReceivablesPage, PaymentDetailPage, PaymentsPage, RecordPaymentPage } from '../features/payments/PaymentPages'
 import { getNavigationForRole } from '../auth/permissions'
 
 const adminRoles = ['ADMIN']
 const purchasingRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS']
 const salesRoles = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'SALES_REP']
+const paymentRoles = ['ADMIN', 'HO_STAFF', 'ACCOUNTS']
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -50,8 +52,13 @@ export const router = createBrowserRouter([
       { path: '/invoices/new', element: <RoleRoute roles={salesRoles}><InvoiceEditorPage /></RoleRoute> },
       { path: '/invoices/:id/edit', element: <RoleRoute roles={salesRoles}><InvoiceEditorPage /></RoleRoute> },
       { path: '/invoices/:id', element: <RoleRoute roles={salesRoles}><InvoiceDetailPage /></RoleRoute> },
+      { path: '/payments', element: <RoleRoute roles={paymentRoles}><PaymentsPage /></RoleRoute> },
+      { path: '/payments/new', element: <RoleRoute roles={paymentRoles}><RecordPaymentPage /></RoleRoute> },
+      { path: '/payments/:id', element: <RoleRoute roles={paymentRoles}><PaymentDetailPage /></RoleRoute> },
+      { path: '/receivables/outstanding', element: <RoleRoute roles={paymentRoles}><OutstandingReceivablesPage /></RoleRoute> },
+      { path: '/receivables/aging', element: <RoleRoute roles={paymentRoles}><AgingPage /></RoleRoute> },
       { path: '/audit-log', element: <RoleRoute roles={adminRoles}><AuthenticatedRoutePage title="Audit log" /></RoleRoute> },
-      ...getNavigationForRole('ADMIN').filter((item) => !['/dashboard', '/pos', '/users', '/branches', '/products', '/customers', '/suppliers', '/expense-categories', '/stock', '/purchase-orders', '/settings', '/audit-log'].includes(item.path)).map((item) => ({ path: item.path, element: <AuthenticatedRoutePage title={item.label} /> })),
+      ...getNavigationForRole('ADMIN').filter((item) => !['/dashboard', '/pos', '/payments', '/users', '/branches', '/products', '/customers', '/suppliers', '/expense-categories', '/stock', '/purchase-orders', '/settings', '/audit-log'].includes(item.path)).map((item) => ({ path: item.path, element: <AuthenticatedRoutePage title={item.label} /> })),
       { path: '/account', element: <AccountPage /> },
     ],
   },

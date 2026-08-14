@@ -34,6 +34,7 @@ test('ADMIN searches products, changes price, and reviews URL-backed movement hi
   await expect(page.getByText('LKR 575.00')).toBeVisible()
   await page.getByRole('button', { name: 'Movement history' }).click()
   await page.getByLabel('Movement branch ID').fill('b1')
+  await expect(page).toHaveURL(/branch_id=b1/)
   await page.getByLabel('Movement from date').fill('2026-08-01')
   await expect(page).toHaveURL(/branch_id=b1/)
   await expect(page).toHaveURL(/from=2026-08-01/)
