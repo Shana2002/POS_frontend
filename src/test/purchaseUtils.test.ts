@@ -38,11 +38,19 @@ describe('phase 6 purchasing rules', () => {
       { line_id: '1', quantity: '100' },
       { line_id: '2', quantity: '50' },
     ])).toEqual({
-      received_date: '2026-08-15',
       lines: [
-        { line_id: 1, received_qty: 100 },
-        { line_id: 2, received_qty: 50 },
+        { line_id: 1, received_qty: 100, received_date: '2026-08-15' },
+        { line_id: 2, received_qty: 50, received_date: '2026-08-15' },
       ],
+    })
+  })
+
+  it('omits zero-quantity lines because the receipt API requires positive quantities', () => {
+    expect(buildReceivePayload('', [
+      { line_id: '1', quantity: '0' },
+      { line_id: '2', quantity: '50' },
+    ])).toEqual({
+      lines: [{ line_id: 2, received_qty: 50 }],
     })
   })
 

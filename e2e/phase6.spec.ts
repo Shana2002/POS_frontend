@@ -73,7 +73,7 @@ test('goods receipt blocks over-receipt then shows posted movements', async ({ p
   await page.route('**/api/v1/purchase-orders/po1/payments', (route) => route.fulfill({ json: { success: true, data: { purchase_order_id: 'po1', payments: [] } } }))
   await page.route('**/api/v1/purchase-orders/po1/receive', (route) => {
     expect(route.request().postDataJSON()).toEqual({
-      lines: [{ line_id: 1, received_qty: 6 }],
+      lines: [{ line_id: 1, received_qty: 6, received_date: '2026-08-15' }],
     })
     return route.fulfill({ status: 200, json: { success: true, data: { purchase_order: { ...po, status: 'RECEIVED', lines: [{ ...po.lines[0], received_qty: '10', outstanding_qty: '0' }] }, movements: [{ id: 'm1' }] } } })
   })
@@ -82,6 +82,7 @@ test('goods receipt blocks over-receipt then shows posted movements', async ({ p
   await expect(page.getByRole('cell', { name: '4', exact: true })).toBeVisible()
   await expect(page.getByRole('cell', { name: '6', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Receive goods' }).click()
+  await page.getByLabel('Goods received date').fill('2026-08-15')
   await page.getByLabel('Receive OX-01 quantity').fill('7')
   await expect(page.getByText('Cannot receive more than the outstanding quantity of 6.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Post goods receipt' })).toBeDisabled()
