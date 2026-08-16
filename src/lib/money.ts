@@ -8,10 +8,19 @@ function groupInteger(value: string): string {
   return chunks.join(',') || '0'
 }
 
-export function formatMoney(value: string, currency = 'LKR'): string {
-  const match = value.trim().match(/^(-?)(\d+)(?:\.(\d+))?$/)
-  if (!match) throw new Error(`Invalid decimal money value: ${value}`)
+export function formatMoney(
+  value: string | number,
+  currency = 'LKR'
+): string {
+  const stringValue = String(value).trim()
+
+  const match = stringValue.match(/^(-?)(\d+)(?:\.(\d+))?$/)
+
+  if (!match) {
+    throw new Error(`Invalid decimal money value: ${value}`)
+  }
 
   const [, sign, integer, fraction = '00'] = match
+
   return `${currency} ${sign}${groupInteger(integer)}.${fraction.padEnd(2, '0')}`
 }

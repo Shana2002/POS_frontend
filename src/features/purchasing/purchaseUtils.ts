@@ -1,5 +1,5 @@
 import type { UserRole } from '../../auth/types'
-import type { PurchaseFilters, PurchaseLineInput } from './types'
+import type { PaymentHistory, PayableRow, PayablesReport, PurchaseFilters, PurchaseLineInput, ReceivePayload, SupplierPayment } from './types'
 
 const costRoles: UserRole[] = ['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER', 'ACCOUNTS']
 
@@ -24,6 +24,7 @@ export function hasDuplicateProducts(lines: PurchaseLineInput[]) {
   return new Set(ids).size !== ids.length
 }
 export function canEditPurchaseOrder(status: string) { return status.toUpperCase() === 'DRAFT' }
+export function canOrderPurchaseOrder(role: UserRole | undefined, status: string) { return role === 'ADMIN' && status.toUpperCase() === 'DRAFT' }
 export function canViewPurchaseCosts(role?: UserRole) { return Boolean(role && costRoles.includes(role)) }
 export function receiveLineError(qty: string, outstanding: string) {
   if (!qty) return undefined
@@ -32,4 +33,17 @@ export function receiveLineError(qty: string, outstanding: string) {
   if (requested > available) return `Cannot receive more than the outstanding quantity of ${outstanding}.`
   return undefined
 }
+export function buildReceivePayload(receivedDate: string, lines: Array<{ line_id: string; quantity: string }>): ReceivePayload {
+  const normalized = lines.map(({ line_id, quantity }) => ({ line_id: Number(line_id), received_qty: Number(quantity) }))
+  if (normalized.some((line) => !Number.isInteger(line.line_id) || !Number.isFinite(line.received_qty))) {
+    throw new Error('Purchase order receipt contains an invalid line or quantity.')
+  }
+  return {
+    received_date: receivedDate || undefined,
+    lines: normalized,
+  }
+}
 export function isReceiveable(status: string) { return !['CANCELLED', 'RECEIVED', 'CLOSED', 'DRAFT'].includes(status.toUpperCase()) }
+export function paymentRows(history?: Partial<PaymentHistory>): SupplierPayment[] { return history?.payments || [] }
+export function payableMoney(value?: string | number | null): string | number { return value ?? '0.00' }
+export function payableRows(report?: Partial<PayablesReport>): PayableRow[] { return report?.rows || [] }

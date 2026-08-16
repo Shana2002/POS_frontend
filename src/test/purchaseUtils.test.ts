@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildPurchaseParams, canEditPurchaseOrder, canViewPurchaseCosts, normalizePurchaseLines, receiveLineError } from '../features/purchasing/purchaseUtils'
+import { buildPurchaseParams, buildReceivePayload, canEditPurchaseOrder, canOrderPurchaseOrder, canViewPurchaseCosts, normalizePurchaseLines, receiveLineError } from '../features/purchasing/purchaseUtils'
 
 describe('phase 6 purchasing rules', () => {
   it('passes only documented register filters', () => {
@@ -22,9 +22,32 @@ describe('phase 6 purchasing rules', () => {
     expect(canEditPurchaseOrder('RECEIVED')).toBe(false)
   })
 
+  it('allows only an admin to transition a draft purchase order to ordered', () => {
+    expect(canOrderPurchaseOrder('ADMIN', 'DRAFT')).toBe(true)
+    expect(canOrderPurchaseOrder('HO_STAFF', 'DRAFT')).toBe(false)
+    expect(canOrderPurchaseOrder('ADMIN', 'ORDERED')).toBe(false)
+  })
+
   it('blocks obvious over-receipt without replacing backend validation', () => {
     expect(receiveLineError('6', '5')).toBe('Cannot receive more than the outstanding quantity of 5.')
     expect(receiveLineError('5', '5')).toBeUndefined()
+  })
+
+  it('serializes the goods receipt using the API field names', () => {
+    expect(buildReceivePayload('2026-08-15', [
+      { line_id: '1', quantity: '100' },
+      { line_id: '2', quantity: '50' },
+    ])).toEqual({
+      received_date: '2026-08-15',
+      lines: [
+        { line_id: 1, received_qty: 100 },
+        { line_id: 2, received_qty: 50 },
+      ],
+    })
+  })
+
+  it('rejects non-numeric purchase order line identifiers before posting', () => {
+    expect(() => buildReceivePayload('', [{ line_id: 'line-1', quantity: '10' }])).toThrow('Purchase order receipt contains an invalid line or quantity.')
   })
 
   it('hides purchase costs from sales representatives', () => {
