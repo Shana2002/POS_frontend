@@ -27,6 +27,49 @@ test('cashier searches, filters, builds a server-backed cart, and issues without
   await expect(page).toHaveURL(/invoices\/i1/)
 })
 
+test('cashier edits cart items and applies percentage or flat discounts', async ({ page }) => {
+  await signIn(page)
+  let current = draft
+  const lineUpdates: Array<Record<string, unknown>> = []
+  const discountUpdates: Array<Record<string, unknown>> = []
+  await page.route('**/api/v1/invoices', (route) => route.fulfill({ status: 201, json: { success: true, data: current } }))
+  await page.route('**/api/v1/invoices/i1/lines/l1', async (route) => {
+    const payload = route.request().postDataJSON() as Record<string, string>
+    lineUpdates.push(payload)
+    current = { ...current, lines: [{ ...current.lines[0], ...payload }] }
+    await route.fulfill({ json: { success: true, data: current } })
+  })
+  await page.route('**/api/v1/invoices/i1', async (route) => {
+    const payload = route.request().postDataJSON() as Record<string, string>
+    discountUpdates.push(payload)
+    current = { ...current, discount_pct: payload.discount_pct, discount_amount: '10.00', net_amount: '878.00' }
+    await route.fulfill({ json: { success: true, data: current } })
+  })
+
+  await page.goto('/pos')
+  await page.getByLabel('POS customer').selectOption('c1')
+  await page.getByRole('button', { name: 'Add to order' }).first().click()
+  await page.getByLabel('OX-01 quantity').fill('3')
+  await expect.poll(() => lineUpdates).toContainEqual({ qty: '3' })
+  await page.getByLabel('OX-01 unit price').fill('125.00')
+  await expect.poll(() => lineUpdates).toContainEqual({ unit_price: '125.00' })
+
+  await page.getByLabel('Discount value').fill('12.5')
+  await page.getByRole('button', { name: 'Apply discount' }).click()
+  await expect(page.locator('.cart-totals .total').getByText('LKR 777.00')).toBeVisible()
+  expect(discountUpdates).toHaveLength(0)
+  await page.getByLabel('Discount type').selectOption('flat')
+  await page.getByLabel('Discount value').fill('10.00')
+  await page.getByRole('button', { name: 'Apply discount' }).click()
+  await expect(page.locator('.cart-totals .total').getByText('LKR 878.00')).toBeVisible()
+  expect(discountUpdates).toHaveLength(0)
+
+  await page.route('**/api/v1/invoices/i1/issue', (route) => route.fulfill({ json: { success: true, data: { invoice: { ...current, status: 'ISSUED' }, movements: [] } } }))
+  await page.getByRole('button', { name: 'Issue draft invoice' }).click()
+  await page.getByRole('button', { name: 'Confirm' }).click()
+  await expect.poll(() => discountUpdates).toContainEqual({ discount_pct: '1.126126' })
+})
+
 test('invoice lifecycle supports delivery, cancellation reversal outcome, free issue, and PDF preview', async ({ page }) => {
   await signIn(page, admin)
   const issued = { ...draft, status: 'ISSUED', net_amount: '0.00', gross_amount: '0.00', balance_due: '0.00' }

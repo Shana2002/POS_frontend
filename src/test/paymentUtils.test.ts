@@ -13,12 +13,14 @@ describe('phase 8 payment and receivables rules', () => {
 
   it('allows payments only for issued invoice states with a balance', () => {
     expect(canPayInvoice({ status: 'ISSUED', balance_due: '50.00' })).toBe(true)
+    expect(canPayInvoice({ status: 'ISSUED', balance_due: 50 })).toBe(true)
     expect(canPayInvoice({ status: 'DRAFT', balance_due: '50.00' })).toBe(false)
     expect(canPayInvoice({ status: 'ISSUED', balance_due: '0.00' })).toBe(false)
   })
 
   it('blocks obvious overpayment using exact decimal strings', () => {
     expect(amountError('100.01', '100.00')).toBe('Amount cannot exceed the current balance of 100.00.')
+    expect(amountError('100.01', 100)).toBe('Amount cannot exceed the current balance of 100.')
     expect(amountError('100.00', '100.00')).toBeUndefined()
   })
 

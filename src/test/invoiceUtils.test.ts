@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildInvoiceParams, canCancelInvoice, canDeliverInvoice, canEditInvoice, freeIssue, invoiceScope, lineError, normalizeInvoiceLines } from '../features/invoices/invoiceUtils'
+import { buildDiscountPayload, buildInvoiceParams, calculateDiscountPreview, canCancelInvoice, canDeliverInvoice, canEditInvoice, freeIssue, invoiceScope, lineError, normalizeInvoiceLines } from '../features/invoices/invoiceUtils'
 
 describe('phase 7 invoice rules', () => {
   it('passes only documented register filters', () => {
@@ -30,4 +30,29 @@ describe('phase 7 invoice rules', () => {
   it('extracts line errors from backend details', () => {
     expect(lineError({ lines: { p1: 'Only 2 units available.' } }, 'p1')).toBe('Only 2 units available.')
   })
+
+  it('keeps percentage discounts in the documented invoice payload', () => {
+    expect(buildDiscountPayload('percentage', '12.5', '200.00')).toEqual({ discount_pct: '12.5' })
+  })
+
+  it('converts a flat discount from the server gross amount without floating point arithmetic', () => {
+    expect(buildDiscountPayload('flat', '10.00', '300.00')).toEqual({ discount_pct: '3.333333' })
+  })
+
+  it('rejects invalid discounts and flat discounts above the gross amount', () => {
+    expect(() => buildDiscountPayload('percentage', '101', '200.00')).toThrow('100%')
+    expect(() => buildDiscountPayload('flat', '200.01', '200.00')).toThrow('gross amount')
+  })
+
+  it('calculates percentage and flat discount previews locally', () => {
+    expect(calculateDiscountPreview('percentage', '12.5', '888.00')).toEqual({
+      discountAmount: '111.00',
+      netAmount: '777.00',
+    })
+    expect(calculateDiscountPreview('flat', '10.00', '888.00')).toEqual({
+      discountAmount: '10.00',
+      netAmount: '878.00',
+    })
+  })
+
 })

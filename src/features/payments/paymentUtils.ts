@@ -4,8 +4,11 @@ import type { Payment, PaymentFilters } from "./types";
 
 const branchScoped: UserRole[] = ["BRANCH_MANAGER", "SALES_REP"];
 const payableStatuses = ["ISSUED", "PARTIALLY_DELIVERED", "DELIVERED"];
-function minorUnits(value: string) {
-  const match = value.trim().match(/^(\d+)(?:\.(\d+))?$/);
+type MoneyValue = string | number;
+
+function minorUnits(value: MoneyValue) {
+  if (typeof value === "number" && !Number.isFinite(value)) return null;
+  const match = String(value).trim().match(/^(\d+)(?:\.(\d+))?$/);
   if (!match) return null;
   return BigInt(match[1] + (match[2] || "").padEnd(2, "0").slice(0, 2));
 }
@@ -43,7 +46,7 @@ export function paymentScope(
   return { branchId: locked ? assignedBranch || "" : requested, locked };
 }
 export function canPayInvoice(
-  invoice: Pick<Invoice, "status" | "balance_due">,
+  invoice: Pick<Invoice, "status"> & { balance_due: MoneyValue },
 ) {
   const balance = minorUnits(invoice.balance_due);
   return (
@@ -52,7 +55,7 @@ export function canPayInvoice(
     balance > BigInt(0)
   );
 }
-export function amountError(amount: string, balance: string) {
+export function amountError(amount: MoneyValue, balance: MoneyValue) {
   const entered = minorUnits(amount);
   const due = minorUnits(balance);
   if (entered === null || entered <= BigInt(0))

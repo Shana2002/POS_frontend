@@ -34,6 +34,8 @@ import {
   canCancelInvoice,
   canDeliverInvoice,
   canEditInvoice,
+  buildDiscountPayload,
+  calculateDiscountPreview,
   discountApprovalMessage,
   freeIssue,
   hasDuplicateInvoiceProducts,
@@ -41,6 +43,7 @@ import {
   lineError,
   normalizeInvoiceLines,
 } from "./invoiceUtils";
+import type { DiscountMode } from "./invoiceUtils";
 import type { Invoice, InvoiceLineInput, InvoicePayload } from "./types";
 
 const emptyLine = (): InvoiceLineInput => ({
@@ -676,7 +679,9 @@ export function InvoiceDetailPage() {
         </article>
         <article>
           <span>Paid</span>
-          <strong>{formatMoney(invoice.amount_paid?invoice.amount_paid:0)}</strong>
+          <strong>
+            {formatMoney(invoice.total_paid ? invoice.total_paid : 0)}
+          </strong>
         </article>
         <article>
           <span>Balance due</span>
@@ -966,6 +971,13 @@ export function PosPage() {
   const [busyLine, setBusyLine] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [issueConfirm, setIssueConfirm] = useState(false);
+  const [discountMode, setDiscountMode] = useState<DiscountMode>("percentage");
+  const [discountValue, setDiscountValue] = useState("0");
+  const [discountPreview, setDiscountPreview] = useState<{
+    discountAmount: string;
+    netAmount: string;
+  } | null>(null);
+  const [localError, setLocalError] = useState<unknown>(null);
   const quantityTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
     {},
   );
@@ -993,6 +1005,12 @@ export function PosPage() {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [draft]);
+  useEffect(
+    () => () => {
+      Object.values(quantityTimers.current).forEach(clearTimeout);
+    },
+    [],
+  );
   const ensureDraft = async (productId: string) => {
     if (!customer || !branchId)
       throw new Error(
@@ -1010,6 +1028,7 @@ export function PosPage() {
     });
   };
   const add = async (productId: string) => {
+    setLocalError(null);
     setBusyLine(productId);
     try {
       const existing = draft?.lines.find(
@@ -1027,47 +1046,76 @@ export function PosPage() {
           )
         : await ensureDraft(productId);
       setDraft(next);
+      setDiscountPreview(null);
       setCartOpen(true);
+    } catch (error) {
+      setLocalError(error);
     } finally {
       setBusyLine("");
     }
   };
-  const changeQty = (lineId: string, qty: string) => {
+  const changeLine = (
+    lineId: string,
+    field: "qty" | "unit_price",
+    value: string,
+  ) => {
     if (!draft) return;
     const invoiceId = draft.id;
+    setLocalError(null);
+    setDiscountPreview(null);
     setDraft({
       ...draft,
       lines: draft.lines.map((line) =>
-        line.id === lineId ? { ...line, qty } : line,
+        line.id === lineId ? { ...line, [field]: value } : line,
       ),
     });
-    clearTimeout(quantityTimers.current[lineId]);
-    quantityTimers.current[lineId] = setTimeout(() => {
+    const timerKey = `${lineId}:${field}`;
+    clearTimeout(quantityTimers.current[timerKey]);
+    quantityTimers.current[timerKey] = setTimeout(() => {
       setBusyLine(lineId);
       void serializeInvoiceLineMutation(`${invoiceId}:${lineId}`, () =>
         mutations.updateLine.mutateAsync({
           id: invoiceId,
           lineId,
-          line: { qty },
+          line: { [field]: value },
         }),
       )
         .then(setDraft)
+        .catch(setLocalError)
         .finally(() => setBusyLine(""));
     }, 300);
   };
   const remove = (lineId: string) => {
     if (!draft) return;
+    setLocalError(null);
+    setDiscountPreview(null);
     setBusyLine(lineId);
     void serializeInvoiceLineMutation(`${draft.id}:${lineId}`, () =>
       mutations.removeLine.mutateAsync({ id: draft.id, lineId }),
     )
       .then(setDraft)
+      .catch(setLocalError)
       .finally(() => setBusyLine(""));
   };
+  const applyDiscount = async () => {
+    if (!draft) return;
+
+    setLocalError(null);
+    try {
+      const discount = calculateDiscountPreview(discountMode, discountValue, draft.gross_amount);
+      setDiscountPreview(discount);
+      draft.discount_amount = discount.discountAmount;
+    } catch (error) {
+      setLocalError(error);
+    }
+  };
   const apiError =
+    localError ||
     mutations.create.error ||
     mutations.addLine.error ||
     mutations.updateLine.error ||
+    mutations.update.error ||
+    mutations.removeLine.error ||
     mutations.issue.error;
   const details =
     apiError instanceof ApiClientError ? apiError.details : undefined;
@@ -1265,13 +1313,30 @@ export function PosPage() {
                   )}
                 </div>
                 <div className="cart-line-actions">
-                  <input
-                    aria-label={`${line.product_code} quantity`}
-                    inputMode="decimal"
-                    value={line.qty}
-                    disabled={busyLine === line.id}
-                    onChange={(e) => changeQty(line.id, e.target.value)}
-                  />
+                  <label>
+                    Qty
+                    <input
+                      aria-label={`${line.product_code} quantity`}
+                      inputMode="decimal"
+                      value={line.qty}
+                      disabled={busyLine === line.id}
+                      onChange={(e) =>
+                        changeLine(line.id, "qty", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Unit price
+                    <input
+                      aria-label={`${line.product_code} unit price`}
+                      inputMode="decimal"
+                      value={line.unit_price}
+                      disabled={busyLine === line.id}
+                      onChange={(e) =>
+                        changeLine(line.id, "unit_price", e.target.value)
+                      }
+                    />
+                  </label>
                   <button
                     className="table-button"
                     disabled={busyLine === line.id}
@@ -1295,13 +1360,51 @@ export function PosPage() {
           <div>
             <span>Discount</span>
             <strong>
-              {draft ? formatMoney(draft.discount_amount) : "LKR 0.00"}
+              {draft
+                ? formatMoney(discountPreview?.discountAmount || draft.discount_amount)
+                : "LKR 0.00"}
             </strong>
+          </div>
+          <div className="cart-discount-editor">
+            <label>
+              Discount type
+              <select
+                aria-label="Discount type"
+                value={discountMode}
+                disabled={!draft || mutations.update.isPending}
+                onChange={(event) =>
+                  setDiscountMode(event.target.value as DiscountMode)
+                }
+              >
+                <option value="percentage">Percentage</option>
+                <option value="flat">Flat rate</option>
+              </select>
+            </label>
+            <label>
+              {discountMode === "percentage" ? "Percentage" : "Flat amount"}
+              <input
+                aria-label="Discount value"
+                inputMode="decimal"
+                value={discountValue}
+                disabled={!draft || mutations.update.isPending}
+                onChange={(event) => setDiscountValue(event.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={!draft || mutations.update.isPending || !discountValue}
+              onClick={() => void applyDiscount()}
+            >
+              {mutations.update.isPending ? "Applying..." : "Apply discount"}
+            </button>
           </div>
           <div className="total">
             <span>Total</span>
             <strong>
-              {draft ? formatMoney(draft.net_amount) : "LKR 0.00"}
+              {draft
+                ? formatMoney(discountPreview?.netAmount || draft.net_amount)
+                : "LKR 0.00"}
             </strong>
           </div>
           {draft && freeIssue(draft) && (
@@ -1319,6 +1422,7 @@ export function PosPage() {
           disabled={
             !draft ||
             !draft.lines.length ||
+            mutations.update.isPending ||
             mutations.issue.isPending ||
             !navigator.onLine
           }
@@ -1334,11 +1438,31 @@ export function PosPage() {
         open={issueConfirm}
         title="Issue invoice"
         message="Issuing posts stock movements. This does not mark the invoice paid."
-        pending={mutations.issue.isPending}
+        pending={mutations.update.isPending || mutations.issue.isPending}
         onCancel={() => setIssueConfirm(false)}
         onConfirm={() => {
-          if (draft)
-            void mutations.issue.mutateAsync(draft.id).then((result) => {
+          // if (draft) {
+          //   const persistAndIssue = discountPreview
+          //     ? mutations.update
+          //         .mutateAsync({
+          //           id: draft.id,
+          //           payload: buildDiscountPayload(
+          //             discountMode,
+          //             discountValue,
+          //             draft.gross_amount,
+          //           ),
+          //         })
+          //         .then(() => mutations.issue.mutateAsync(draft.id))
+          //     : mutations.issue.mutateAsync(draft.id);
+          //   void persistAndIssue.then((result) => {
+          //     setDraft(result.invoice);
+          //     setIssueConfirm(false);
+          //     navigate(`/invoices/${result.invoice.id}`);
+          //   });
+          // }
+          if (!draft) return;
+          console.log(draft?.discount_amount)
+          void mutations.issue.mutateAsync(draft.id).then((result) => {
               setDraft(result.invoice);
               setIssueConfirm(false);
               navigate(`/invoices/${result.invoice.id}`);
