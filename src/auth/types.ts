@@ -6,6 +6,7 @@ export type User = {
   email: string
   role: UserRole
   branch_id: string | null
+  branch_name?: string | null
   phone?: string | null
   is_active: boolean
   last_login_at?: string | null

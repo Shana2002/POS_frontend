@@ -123,7 +123,7 @@ export function UsersPage() {
                   </td>
                   <td>{user.email}</td>
                   <td>{user.role.replaceAll("_", " ")}</td>
-                  <td>{user.branch_id || "Head office"}</td>
+                  <td>{user.branch_name || "Head office"}</td>
                   <td>
                     <StatusBadge active={user.is_active} />
                   </td>
@@ -221,6 +221,12 @@ function UserForm({
     is_active: user?.is_active ?? true,
   });
   const list = useListState();
+  const query = useBranches({
+      search: list.search,
+      page: String(list.page),
+      per_page: list.perPage,
+    });
+  const rows = query.data?.rows || [];
   const set = (key: keyof UserPayload, value: string | boolean) =>
     setForm((current) => ({ ...current, [key]: value }));
   async function submit(event: FormEvent) {
@@ -281,31 +287,14 @@ function UserForm({
         <label>
             {roleRequiresBranch(form.role) ? "Branch ID" : "Branch ID (optional)"}
           <select
-            value={form.role}
-            onChange={(event) => set("role", event.target.value as UserRole)}
+            value={form.branch_id || ""}
+            onChange={(event) => set("branch_id", event.target.value)}
           >
-            {(
-              [
-                "ADMIN",
-                "HO_STAFF",
-                "BRANCH_MANAGER",
-                "SALES_REP",
-                "ACCOUNTS",
-              ] as UserRole[]
-            ).map((role) => (
-              <option key={role}>{role}</option>
+            {rows.map((branch) => (
+              <option key={branch.id} value={branch.id}>{branch.code} - {branch.name}</option>
             ))}
           </select>
         </label>
-        <FormInput
-          label={
-            roleRequiresBranch(form.role) ? "Branch ID" : "Branch ID (optional)"
-          }
-          value={form.branch_id || ""}
-          onChange={(value) => set("branch_id", value)}
-          error={fieldError(error, "branch_id")}
-          required={roleRequiresBranch(form.role)}
-        />
         <FormInput
           label="Phone (optional)"
           value={form.phone || ""}

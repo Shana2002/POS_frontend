@@ -30,6 +30,7 @@ export function useUsers(filters: ListFilters) {
         url: "/users",
         params: buildListParams(filters),
       });
+      console.log("result", result);
       return { rows: result.data, meta: result.meta as Pagination | undefined };
     },
   });
