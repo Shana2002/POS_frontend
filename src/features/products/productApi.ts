@@ -10,13 +10,16 @@ import type {
   Pagination,
   PriceHistoryEntry,
   Product,
+  ProductCategory,
+  ProductCategoryFilters,
+  ProductCategoryPayload,
   ProductFormValues,
   ProductListFilters,
   ProductMovement,
 } from "./types";
 
 function listParams(
-  filters: ProductListFilters,
+  filters: ProductListFilters | ProductCategoryFilters,
 ): Record<string, string | number> {
   return Object.fromEntries(
     Object.entries(filters).flatMap(([key, value]) =>
@@ -35,6 +38,9 @@ export const productKeys = {
     ["products", "price-history", id, page] as const,
   movement: (id: string, filters: MovementFilters) =>
     ["products", "movement", id, filters] as const,
+  categories: () => ["product-categories"] as const,
+  categoryList: (filters: ProductCategoryFilters) =>
+    ["product-categories", "list", filters] as const,
 };
 
 export function useProducts(filters: ProductListFilters) {
@@ -166,4 +172,57 @@ export function useProductMutations() {
     onSuccess: (product) => invalidateProducts(product.id),
   });
   return { create, update, deactivate, changePrice };
+}
+
+export function useProductCategories(filters: ProductCategoryFilters) {
+  return useQuery({
+    queryKey: productKeys.categoryList(filters),
+    queryFn: async () => {
+      const response = await request<ProductCategory[]>({
+        method: "GET",
+        url: "/product-categories",
+        params: listParams(filters),
+      });
+      return {
+        rows: response.data,
+        meta: response.meta as Pagination | undefined,
+      };
+    },
+  });
+}
+
+export function useProductCategoryMutations() {
+  const queryClient = useQueryClient();
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: productKeys.categories() });
+    // Products embed category_code/name, so a rename must refresh them too.
+    void queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+  };
+  const create = useMutation({
+    mutationFn: (payload: ProductCategoryPayload) =>
+      request<ProductCategory>({
+        method: "POST",
+        url: "/product-categories",
+        data: payload,
+      }).then((result) => result.data),
+    onSuccess: invalidate,
+  });
+  const update = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: ProductCategoryPayload }) =>
+      request<ProductCategory>({
+        method: "PUT",
+        url: `/product-categories/${id}`,
+        data: payload,
+      }).then((result) => result.data),
+    onSuccess: invalidate,
+  });
+  const deactivate = useMutation({
+    mutationFn: (id: string) =>
+      request<ProductCategory>({
+        method: "DELETE",
+        url: `/product-categories/${id}`,
+      }).then((result) => result.data),
+    onSuccess: invalidate,
+  });
+  return { create, update, deactivate };
 }

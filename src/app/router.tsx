@@ -5,7 +5,7 @@ import { LoginPage } from '../pages/LoginPage'
 import { AuthenticatedRoutePage, ForbiddenPage, UnauthorizedPage } from '../pages/AuthPages'
 import { AccountPage } from '../pages/AccountPage'
 import { UsersPage, BranchesPage, SettingsPage } from '../features/admin/AdminPages'
-import { ProductDetailPage, ProductsPage } from '../features/products/ProductPages'
+import { ProductCategoriesPage, ProductDetailPage, ProductsPage } from '../features/products/ProductPages'
 import { CustomerDetailPage, CustomersPage, ExpenseCategoriesPage, SupplierDetailPage, SuppliersPage } from '../features/partners/PartnerPages'
 import { OpeningBalancePage, StockLevelsPage, StockMatrixPage, StockMovementsPage, StockValuationPage } from '../features/stock/StockPages'
 import { PayablesPage, PurchaseOrderDetailPage, PurchaseOrderEditorPage, PurchaseOrdersPage } from '../features/purchasing/PurchasePages'
@@ -43,6 +43,7 @@ export const router = createBrowserRouter([
       { path: '/branches', element: <BranchesPage /> },
       { path: '/settings', element: <RoleRoute roles={adminRoles}><SettingsPage /></RoleRoute> },
       { path: '/products', element: <ProductsPage /> },
+      { path: '/product-categories', element: <RoleRoute roles={['ADMIN', 'HO_STAFF']}><ProductCategoriesPage /></RoleRoute> },
       { path: '/products/:id', element: <ProductDetailPage /> },
       { path: '/customers', element: <CustomersPage /> },
       { path: '/customers/:id', element: <CustomerDetailPage /> },
@@ -87,7 +88,7 @@ export const router = createBrowserRouter([
       { path: '/expenses/:id', element: <RoleRoute roles={expenseRoles}><ExpenseDetailPage /></RoleRoute> },
       { path: '/reports/:name', element: <RoleRoute roles={reportRoles}><ReportPage /></RoleRoute> },
       { path: '/audit-log', element: <RoleRoute roles={adminRoles}><AuditLogPage /></RoleRoute> },
-      ...getNavigationForRole('ADMIN').filter((item) => !['/dashboard', '/pos', '/payments', '/transfers', '/samples', '/disposals', '/stock-counts', '/expenses', '/reports/dashboard', '/users', '/branches', '/products', '/customers', '/suppliers', '/expense-categories', '/stock', '/purchase-orders', '/settings', '/audit-log'].includes(item.path)).map((item) => ({ path: item.path, element: <AuthenticatedRoutePage title={item.label} /> })),
+      ...getNavigationForRole('ADMIN').filter((item) => !['/dashboard', '/pos', '/payments', '/transfers', '/samples', '/disposals', '/stock-counts', '/expenses', '/reports/dashboard', '/users', '/branches', '/products', '/product-categories', '/customers', '/suppliers', '/expense-categories', '/stock', '/purchase-orders', '/settings', '/audit-log'].includes(item.path)).map((item) => ({ path: item.path, element: <AuthenticatedRoutePage title={item.label} /> })),
       { path: '/account', element: <AccountPage /> },
     ],
   },

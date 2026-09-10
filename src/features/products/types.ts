@@ -2,7 +2,9 @@ export type Product = {
   id: string
   code: string
   name: string
-  category: string
+  category_id: string
+  category_code: string
+  category_name: string
   unit_price?: string
   cost_price?: string
   reorder_level: string
@@ -17,7 +19,7 @@ export type Product = {
 export type ProductFormValues = {
   code: string
   name: string
-  category: string
+  category_id: string
   unit_price?: string
   cost_price?: string
   reorder_level: string
@@ -27,7 +29,11 @@ export type ProductFormValues = {
 }
 
 export type ProductPayload = Omit<ProductFormValues, 'unit_price' | 'cost_price'> & { unit_price?: string; cost_price?: string }
-export type ProductListFilters = { search?: string; category?: string; active?: string; page?: string; per_page?: string }
+export type ProductListFilters = { search?: string; category_id?: string; active?: string; page?: string; per_page?: string }
+
+export type ProductCategory = { id: string; code: string; name: string; is_active: boolean }
+export type ProductCategoryPayload = Omit<ProductCategory, 'id'>
+export type ProductCategoryFilters = { search?: string; active?: string; page?: string; per_page?: string }
 export type MovementFilters = { branch_id?: string; from?: string; to?: string; type?: string; page?: string; per_page?: string; [key: string]: string | undefined }
 export type PriceHistoryEntry = { id: string; product_id: string; price: string; cost_price?: string; effective_from: string; changed_by: string; created_at: string }
 export type StockMovement = { id: string; movement_date: string; product_id: string; product_code: string; product_name: string; branch_id: string; branch_code: string; movement_type: string; qty_in: string; qty_out: string; signed_qty: string; unit_cost?: string; reference_type: string; reference_id: string; notes?: string; created_by: string; created_at: string }

@@ -11,17 +11,29 @@ import {
   ConfirmationDialog,
   EmptyState,
   Pagination,
+  StatusBadge,
 } from "../../components/AdminUI";
 import { formatMoney } from "../../lib/money";
 import {
   usePriceHistory,
   useProduct,
+  useProductCategories,
+  useProductCategoryMutations,
   useProductMovement,
   useProductMutations,
   useProducts,
 } from "./productApi";
-import { canShowProductCost, productDeactivationMessage } from "./productUtils";
-import type { Product, ProductFormValues } from "./types";
+import {
+  canShowProductCost,
+  productCategoryDeactivationMessage,
+  productDeactivationMessage,
+} from "./productUtils";
+import type {
+  Product,
+  ProductCategory,
+  ProductCategoryPayload,
+  ProductFormValues,
+} from "./types";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error
@@ -43,6 +55,28 @@ function canManage(role?: string): boolean {
 function money(value?: string): string {
   return value ? formatMoney(value) : "Not priced";
 }
+function categoryOptions(
+  rows: ProductCategory[] | undefined,
+  product: Product | null,
+): ProductCategory[] {
+  const active = rows || [];
+  // A product filed under a now-inactive category must still show it selected.
+  if (
+    product?.category_id &&
+    !active.some((row) => row.id === product.category_id)
+  ) {
+    return [
+      {
+        id: product.category_id,
+        code: product.category_code,
+        name: product.category_name,
+        is_active: false,
+      },
+      ...active,
+    ];
+  }
+  return active;
+}
 
 export function ProductsPage() {
   const auth = useAuth();
@@ -54,12 +88,13 @@ export function ProductsPage() {
   const [confirm, setConfirm] = useState<Product | null>(null);
   const filters = {
     search: params.get("search") || "",
-    category: params.get("category") || "",
+    category_id: params.get("category_id") || "",
     active: params.get("active") || "",
     page: params.get("page") || "1",
     per_page: params.get("per_page") || "20",
   };
   const query = useProducts(filters);
+  const categories = useProductCategories({ active: "true", per_page: "200" });
   const rows = query.data?.rows || [];
   const manage = canManage(auth.user?.role);
   const setFilter = (key: string, value: string) => {
@@ -87,12 +122,18 @@ export function ProductsPage() {
           value={filters.search}
           onChange={(event) => setFilter("search", event.target.value)}
         />
-        <input
+        <select
           aria-label="Filter by category"
-          placeholder="Category"
-          value={filters.category}
-          onChange={(event) => setFilter("category", event.target.value)}
-        />
+          value={filters.category_id}
+          onChange={(event) => setFilter("category_id", event.target.value)}
+        >
+          <option value="">All categories</option>
+          {(categories.data?.rows || []).map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
         <select
           aria-label="Filter by active status"
           value={filters.active}
@@ -134,7 +175,7 @@ export function ProductsPage() {
               </Link>
               <div className="product-card-body">
                 <div className="product-card-heading">
-                  <span>{product.category}</span>
+                  <span>{product.category_name}</span>
                   {product.is_low && (
                     <span className="low-stock">! Low stock</span>
                   )}
@@ -250,7 +291,7 @@ export function ProductDetailPage() {
       </Link>
       <Header
         title={product.name}
-        description={`${product.code} · ${product.category} · ${product.unit_of_measure}`}
+        description={`${product.code} · ${product.category_name} · ${product.unit_of_measure}`}
         action={
           manage ? (
             <div className="header-actions">
@@ -375,7 +416,7 @@ function Overview({
         </div>
         <div>
           <dt>Category</dt>
-          <dd>{product.category}</dd>
+          <dd>{product.category_name}</dd>
         </div>
         <div>
           <dt>Unit of measure</dt>
@@ -617,7 +658,7 @@ function ProductForm({
   const [values, setValues] = useState<ProductFormValues>({
     code: product?.code || "",
     name: product?.name || "",
-    category: product?.category || "",
+    category_id: product?.category_id || "",
     unit_price: product?.unit_price || "",
     cost_price: product?.cost_price || "",
     reorder_level: product?.reorder_level || "",
@@ -625,6 +666,10 @@ function ProductForm({
     image_path: product?.image_path || "",
     is_active: product?.is_active ?? true,
   });
+  const categoriesQuery = useProductCategories({ active: "true", per_page: "200" });
+  // Active categories to choose from, plus this product's current one when it has
+  // since been deactivated — otherwise editing would silently drop or hide it.
+  const options = categoryOptions(categoriesQuery.data?.rows, product);
   const set = (key: keyof ProductFormValues, value: string | boolean) =>
     setValues((current) => ({ ...current, [key]: value }));
   return (
@@ -659,13 +704,29 @@ function ProductForm({
           error={fieldError(error, "name")}
           required
         />
-        <Field
-          label="Category"
-          value={values.category}
-          onChange={(value) => set("category", value)}
-          error={fieldError(error, "category")}
-          required
-        />
+        <label>
+          Category
+          <select
+            value={values.category_id}
+            onChange={(event) => set("category_id", event.target.value)}
+            required
+          >
+            <option value="" disabled>
+              {categoriesQuery.isPending
+                ? "Loading categories…"
+                : "Select a category"}
+            </option>
+            {options.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+                {category.is_active ? "" : " (inactive)"}
+              </option>
+            ))}
+          </select>
+          <small className="field-error">
+            {fieldError(error, "category_id") || ""}
+          </small>
+        </label>
         {!product && (
           <Field
             label="Initial selling price"
@@ -914,5 +975,221 @@ function ErrorState({ title, error }: { title: string; error: unknown }) {
       <strong>{title}</strong>
       <span>{errorMessage(error)}</span>
     </div>
+  );
+}
+
+export function ProductCategoriesPage() {
+  const auth = useAuth();
+  const [params, setParams] = useSearchParams();
+  const mutations = useProductCategoryMutations();
+  const [editing, setEditing] = useState<ProductCategory | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [confirm, setConfirm] = useState<ProductCategory | null>(null);
+  const filters = {
+    search: params.get("search") || "",
+    active: params.get("active") || "",
+    page: params.get("page") || "1",
+    per_page: "20",
+  };
+  const query = useProductCategories(filters);
+  const rows = query.data?.rows || [];
+  const manage = canManage(auth.user?.role);
+  const setFilter = (key: string, value: string) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    if (key !== "page") next.set("page", "1");
+    setParams(next);
+  };
+  return (
+    <div className="catalogue-page">
+      <Link className="back-link" to="/products">
+        ← Back to products
+      </Link>
+      <Header
+        title="Product categories"
+        description="Maintain the categories chosen when registering a product."
+        action={
+          manage ? (
+            <button onClick={() => setCreating(true)}>Create category</button>
+          ) : undefined
+        }
+      />
+      <div className="catalogue-toolbar">
+        <input
+          aria-label="Search product categories"
+          placeholder="Search by code or name"
+          value={filters.search}
+          onChange={(event) => setFilter("search", event.target.value)}
+        />
+        <select
+          aria-label="Filter by active status"
+          value={filters.active}
+          onChange={(event) => setFilter("active", event.target.value)}
+        >
+          <option value="">All statuses</option>
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+      </div>
+      {query.isPending ? (
+        <Loading />
+      ) : query.isError ? (
+        <ErrorState
+          title="Unable to load product categories"
+          error={query.error}
+        />
+      ) : rows.length === 0 ? (
+        <EmptyState title="No product categories found">
+          Create the first category or adjust your search.
+        </EmptyState>
+      ) : (
+        <div className="data-table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Code and name</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td>
+                    <strong>
+                      {row.code} · {row.name}
+                    </strong>
+                  </td>
+                  <td>
+                    <StatusBadge active={row.is_active} />
+                  </td>
+                  <td>
+                    {manage ? (
+                      <div className="table-actions">
+                        <button
+                          className="table-button"
+                          onClick={() => setEditing(row)}
+                        >
+                          Edit
+                        </button>
+                        {row.is_active && (
+                          <button
+                            className="table-button"
+                            onClick={() => setConfirm(row)}
+                          >
+                            Deactivate
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="muted-label">Read only</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <Pagination
+        page={Number(filters.page)}
+        pages={query.data?.meta?.pages || 1}
+        onPage={(page) => setFilter("page", String(page))}
+      />
+      {(creating || editing) && (
+        <CategoryForm
+          category={editing}
+          pending={mutations.create.isPending || mutations.update.isPending}
+          error={mutations.create.error || mutations.update.error}
+          onCancel={() => {
+            setCreating(false);
+            setEditing(null);
+          }}
+          onSubmit={async (payload) => {
+            if (editing)
+              await mutations.update.mutateAsync({ id: editing.id, payload });
+            else await mutations.create.mutateAsync(payload);
+            setCreating(false);
+            setEditing(null);
+          }}
+        />
+      )}
+      <ConfirmationDialog
+        open={Boolean(confirm)}
+        title="Deactivate product category"
+        message={confirm ? productCategoryDeactivationMessage(confirm.name) : ""}
+        pending={mutations.deactivate.isPending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          if (confirm)
+            void mutations.deactivate
+              .mutateAsync(confirm.id)
+              .then(() => setConfirm(null));
+        }}
+      />
+    </div>
+  );
+}
+
+function CategoryForm({
+  category,
+  pending,
+  error,
+  onCancel,
+  onSubmit,
+}: {
+  category: ProductCategory | null;
+  pending: boolean;
+  error: unknown;
+  onCancel: () => void;
+  onSubmit: (payload: ProductCategoryPayload) => Promise<void>;
+}) {
+  const [form, setForm] = useState<ProductCategoryPayload>({
+    code: category?.code || "",
+    name: category?.name || "",
+    is_active: category?.is_active ?? true,
+  });
+  return (
+    <Modal
+      title={category ? "Edit product category" : "Create product category"}
+      onClose={onCancel}
+    >
+      <form
+        className="admin-form"
+        onSubmit={(event: FormEvent) => {
+          event.preventDefault();
+          void onSubmit(form);
+        }}
+      >
+        <Field
+          label="Code"
+          value={form.code}
+          onChange={(code) => setForm({ ...form, code })}
+          error={fieldError(error, "code")}
+          required
+        />
+        <Field
+          label="Name"
+          value={form.name}
+          onChange={(name) => setForm({ ...form, name })}
+          error={fieldError(error, "name")}
+          required
+        />
+        <div className="modal-actions">
+          <button type="button" className="secondary-button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button disabled={pending}>
+            {pending ? "Saving..." : "Save category"}
+          </button>
+        </div>
+        {Boolean(error) && (
+          <div className="form-message error" role="alert">
+            {errorMessage(error)}
+          </div>
+        )}
+      </form>
+    </Modal>
   );
 }

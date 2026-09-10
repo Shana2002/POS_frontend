@@ -8,7 +8,7 @@ export function productUpdatePayload(values: ProductFormValues): ProductPayload 
   return {
     code: values.code,
     name: values.name,
-    category: values.category,
+    category_id: values.category_id,
     reorder_level: values.reorder_level,
     unit_of_measure: values.unit_of_measure,
     image_path: values.image_path || undefined,
@@ -35,4 +35,8 @@ export function buildMovementParams(filters: MovementFilters): Record<string, st
 
 export function productDeactivationMessage(name: string): string {
   return `Deactivate ${name}? It will remain visible in historical records but cannot be selected for new transactions.`
+}
+
+export function productCategoryDeactivationMessage(name: string): string {
+  return `Deactivate ${name}? Existing products keep this category, but it can no longer be chosen when registering or editing a product.`
 }
