@@ -1442,28 +1442,24 @@ export function PosPage() {
         pending={mutations.update.isPending || mutations.issue.isPending}
         onCancel={() => setIssueConfirm(false)}
         onConfirm={() => {
-          // if (draft) {
-          //   const persistAndIssue = discountPreview
-          //     ? mutations.update
-          //         .mutateAsync({
-          //           id: draft.id,
-          //           payload: buildDiscountPayload(
-          //             discountMode,
-          //             discountValue,
-          //             draft.gross_amount,
-          //           ),
-          //         })
-          //         .then(() => mutations.issue.mutateAsync(draft.id))
-          //     : mutations.issue.mutateAsync(draft.id);
-          //   void persistAndIssue.then((result) => {
-          //     setDraft(result.invoice);
-          //     setIssueConfirm(false);
-          //     navigate(`/invoices/${result.invoice.id}`);
-          //   });
-          // }
           if (!draft) return;
-          console.log(draft?.discount_amount)
-          void mutations.issue.mutateAsync(draft.id).then((result) => {
+          // A locally applied discount (preview-only until now) is persisted
+          // with the invoice just before issuing, so the issued document
+          // carries it — see e2e/phase7.spec.ts "applies percentage or flat
+          // discounts".
+          const persistAndIssue = discountPreview
+            ? mutations.update
+                .mutateAsync({
+                  id: draft.id,
+                  payload: buildDiscountPayload(
+                    discountMode,
+                    discountValue,
+                    draft.gross_amount,
+                  ),
+                })
+                .then(() => mutations.issue.mutateAsync(draft.id))
+            : mutations.issue.mutateAsync(draft.id);
+          void persistAndIssue.then((result) => {
               setDraft(result.invoice);
               setIssueConfirm(false);
               navigate(`/invoices/${result.invoice.id}`);
