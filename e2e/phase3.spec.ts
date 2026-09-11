@@ -84,6 +84,13 @@ test('ADMIN attaches an image file when creating a product', async ({ page }) =>
   await page.route('**/api/v1/products/p2/image', async (route) => {
     if (route.request().method() === 'POST') {
       uploaded = true
+      // Guards the axios pitfall: with the instance's JSON Content-Type left
+      // in place, the FormData is serialized to JSON and both assertions
+      // fail (the backend would answer IMAGE_REQUIRED).
+      const contentType = route.request().headers()['content-type'] || ''
+      expect(contentType).toContain('multipart/form-data')
+      expect(contentType).toContain('boundary=')
+      expect((route.request().postDataBuffer() || Buffer.alloc(0)).toString('utf-8')).toContain('photo.png')
       return route.fulfill({ json: { success: true, data: withImage } })
     }
     return route.fulfill({ contentType: 'image/png', body: PNG_BUFFER })

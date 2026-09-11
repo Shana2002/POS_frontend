@@ -172,8 +172,13 @@ export function useProductMutations() {
     onSuccess: (product) => invalidateProducts(product.id),
   });
   const uploadImage = useMutation({
-    // A FormData body: axios drops the instance's JSON default and lets the
-    // browser set the multipart boundary.
+    // A FormData body. The instance's default JSON Content-Type must be
+    // removed for this one request, or axios stringifies the FormData into a
+    // JSON body (defaults transformRequest) and the backend sees no file
+    // part. `false` is axios's "send without this header": the browser then
+    // sets multipart/form-data with the boundary itself. It must not be set
+    // to 'multipart/form-data' manually — this axios build would send it
+    // without a boundary.
     mutationFn: ({ id, file }: { id: string; file: File }) => {
       const data = new FormData();
       data.append("image", file);
@@ -181,6 +186,7 @@ export function useProductMutations() {
         method: "POST",
         url: `/products/${id}/image`,
         data,
+        headers: { "Content-Type": false },
       }).then((result) => result.data);
     },
     onSuccess: (product) => invalidateProducts(product.id),
