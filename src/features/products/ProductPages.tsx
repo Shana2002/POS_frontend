@@ -13,6 +13,7 @@ import {
   Pagination,
   StatusBadge,
 } from "../../components/AdminUI";
+import { FilePreview, ProductImage } from "../../components/ProductImage";
 import { formatMoney } from "../../lib/money";
 import {
   usePriceHistory,
@@ -86,6 +87,9 @@ export function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
   const [confirm, setConfirm] = useState<Product | null>(null);
+  // Set once a create has succeeded, so a failed image upload afterwards can
+  // disable Save (a retry would hit duplicate-code 409) and explain instead.
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const filters = {
     search: params.get("search") || "",
     category_id: params.get("category_id") || "",
@@ -167,11 +171,11 @@ export function ProductsPage() {
                 className="product-image"
                 aria-label={`View ${product.name}`}
               >
-                {product.image_path ? (
-                  <img src={product.image_path} alt="" />
-                ) : (
-                  <span aria-hidden="true">{product.code.slice(0, 2)}</span>
-                )}
+                <ProductImage
+                  product={product}
+                  alt=""
+                  fallback={<span aria-hidden="true">{product.code.slice(0, 2)}</span>}
+                />
               </Link>
               <div className="product-card-body">
                 <div className="product-card-heading">
@@ -229,21 +233,53 @@ export function ProductsPage() {
       {(creating || editing) && (
         <ProductForm
           product={editing}
-          pending={mutations.create.isPending || mutations.update.isPending}
-          error={mutations.create.error || mutations.update.error}
+          pending={
+            mutations.create.isPending ||
+            mutations.update.isPending ||
+            mutations.uploadImage.isPending ||
+            mutations.removeImage.isPending
+          }
+          error={
+            mutations.create.error ||
+            mutations.update.error ||
+            mutations.uploadImage.error ||
+            mutations.removeImage.error
+          }
+          productAlreadyCreated={Boolean(createdId)}
           onCancel={() => {
             setCreating(false);
             setEditing(null);
+            setCreatedId(null);
           }}
           onSubmit={async (values) => {
-            if (editing)
+            if (editing) {
               await mutations.update.mutateAsync({ id: editing.id, values });
-            else {
-              const created = await mutations.create.mutateAsync(values);
-              navigate(`/products/${created.id}`);
+              if (values.image_file) {
+                await mutations.uploadImage.mutateAsync({
+                  id: editing.id,
+                  file: values.image_file,
+                });
+              } else if (values.image_removed) {
+                await mutations.removeImage.mutateAsync(editing.id);
+              }
+              setCreating(false);
+              setEditing(null);
+              return;
             }
+            const created = await mutations.create.mutateAsync(values);
+            // Before the upload, so a rejection leaves the form open with the
+            // product already saved — the form shows that state instead of
+            // letting a retry re-create the row.
+            setCreatedId(created.id);
+            if (values.image_file) {
+              await mutations.uploadImage.mutateAsync({
+                id: created.id,
+                file: values.image_file,
+              });
+            }
+            navigate(`/products/${created.id}`);
             setCreating(false);
-            setEditing(null);
+            setCreatedId(null);
           }}
         />
       )}
@@ -353,11 +389,27 @@ export function ProductDetailPage() {
       {editing && (
         <ProductForm
           product={product}
-          pending={mutations.update.isPending}
-          error={mutations.update.error}
+          pending={
+            mutations.update.isPending ||
+            mutations.uploadImage.isPending ||
+            mutations.removeImage.isPending
+          }
+          error={
+            mutations.update.error ||
+            mutations.uploadImage.error ||
+            mutations.removeImage.error
+          }
           onCancel={() => setEditing(false)}
           onSubmit={async (values) => {
             await mutations.update.mutateAsync({ id, values });
+            if (values.image_file) {
+              await mutations.uploadImage.mutateAsync({
+                id,
+                file: values.image_file,
+              });
+            } else if (values.image_removed) {
+              await mutations.removeImage.mutateAsync(id);
+            }
             setEditing(false);
           }}
         />
@@ -403,11 +455,7 @@ function Overview({
   return (
     <section className="detail-panel">
       <div className="product-overview-image">
-        {product.image_path ? (
-          <img src={product.image_path} alt={product.name} />
-        ) : (
-          <span>No image</span>
-        )}
+        <ProductImage product={product} alt={product.name} fallback={<span>No image</span>} />
       </div>
       <dl>
         <div>
@@ -646,12 +694,14 @@ function ProductForm({
   product,
   pending,
   error,
+  productAlreadyCreated = false,
   onCancel,
   onSubmit,
 }: {
   product: Product | null;
   pending: boolean;
   error: unknown;
+  productAlreadyCreated?: boolean;
   onCancel: () => void;
   onSubmit: (values: ProductFormValues) => Promise<void>;
 }) {
@@ -663,15 +713,20 @@ function ProductForm({
     cost_price: product?.cost_price || "",
     reorder_level: product?.reorder_level || "",
     unit_of_measure: product?.unit_of_measure || "",
-    image_path: product?.image_path || "",
+    image_file: null,
+    image_removed: false,
     is_active: product?.is_active ?? true,
   });
   const categoriesQuery = useProductCategories({ active: "true", per_page: "200" });
   // Active categories to choose from, plus this product's current one when it has
   // since been deactivated — otherwise editing would silently drop or hide it.
   const options = categoryOptions(categoriesQuery.data?.rows, product);
-  const set = (key: keyof ProductFormValues, value: string | boolean) =>
-    setValues((current) => ({ ...current, [key]: value }));
+  const set = (
+    key: keyof ProductFormValues,
+    value: string | boolean | File | null,
+  ) => setValues((current) => ({ ...current, [key]: value }));
+  const hasCurrentImage =
+    Boolean(product?.image_path) && !values.image_removed && !values.image_file;
   return (
     <Modal
       title={product ? "Edit product" : "Create product"}
@@ -763,20 +818,70 @@ function ProductForm({
           error={fieldError(error, "unit_of_measure")}
           required
         />
-        <Field
-          label="Image URL (optional)"
-          value={values.image_path || ""}
-          onChange={(value) => set("image_path", value)}
-          error={fieldError(error, "image_path")}
-        />
+        <div className="form-file">
+          <label>
+            Product image (optional)
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              aria-label="Product image file"
+              onChange={(event) => {
+                const file = event.target.files?.[0] || null;
+                setValues((current) => ({
+                  ...current,
+                  image_file: file,
+                  // Picking a file cancels a pending removal.
+                  image_removed: file ? false : current.image_removed,
+                }));
+              }}
+            />
+          </label>
+          <div className="form-file-preview">
+            {values.image_file ? (
+              <FilePreview file={values.image_file} />
+            ) : hasCurrentImage && product ? (
+              <ProductImage
+                product={product}
+                alt=""
+                fallback={<span>Current image</span>}
+              />
+            ) : (
+              <span className="form-file-empty">
+                {values.image_removed
+                  ? "Image will be removed."
+                  : "No image selected."}
+              </span>
+            )}
+          </div>
+          {Boolean(product?.image_path) && !values.image_file && (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() =>
+                setValues((current) => ({
+                  ...current,
+                  image_removed: !current.image_removed,
+                }))
+              }
+            >
+              {values.image_removed ? "Keep image" : "Remove image"}
+            </button>
+          )}
+        </div>
         <div className="modal-actions">
           <button type="button" className="secondary-button" onClick={onCancel}>
             Cancel
           </button>
-          <button disabled={pending}>
+          <button disabled={pending || productAlreadyCreated}>
             {pending ? "Saving..." : "Save product"}
           </button>
         </div>
+        {productAlreadyCreated && (
+          <div className="form-message error" role="alert">
+            The product was saved, but its image could not be uploaded. Close
+            this form and edit the product to retry.
+          </div>
+        )}
         {Boolean(error) && (
           <div className="form-message error" role="alert">
             {errorMessage(error)}

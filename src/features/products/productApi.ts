@@ -171,7 +171,28 @@ export function useProductMutations() {
       }).then((result) => result.data),
     onSuccess: (product) => invalidateProducts(product.id),
   });
-  return { create, update, deactivate, changePrice };
+  const uploadImage = useMutation({
+    // A FormData body: axios drops the instance's JSON default and lets the
+    // browser set the multipart boundary.
+    mutationFn: ({ id, file }: { id: string; file: File }) => {
+      const data = new FormData();
+      data.append("image", file);
+      return request<Product>({
+        method: "POST",
+        url: `/products/${id}/image`,
+        data,
+      }).then((result) => result.data);
+    },
+    onSuccess: (product) => invalidateProducts(product.id),
+  });
+  const removeImage = useMutation({
+    mutationFn: (id: string) =>
+      request<Product>({ method: "DELETE", url: `/products/${id}/image` }).then(
+        (result) => result.data,
+      ),
+    onSuccess: (product) => invalidateProducts(product.id),
+  });
+  return { create, update, deactivate, changePrice, uploadImage, removeImage };
 }
 
 export function useProductCategories(filters: ProductCategoryFilters) {

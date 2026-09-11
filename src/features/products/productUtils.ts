@@ -4,14 +4,28 @@ export function canShowProductCost(product: Product): boolean {
   return Object.prototype.hasOwnProperty.call(product, 'cost_price')
 }
 
+/**
+ * How a product's `image_path` should be rendered: a legacy full URL (rows
+ * created before uploads existed) renders directly; anything else is a
+ * server-stored filename fetched authenticated via GET /products/:id/image.
+ */
+export type ProductImageKind = 'none' | 'url' | 'server'
+
+export function productImageKind(imagePath: string | null | undefined): ProductImageKind {
+  if (!imagePath) return 'none'
+  if (/^(https?:)?\/\//i.test(imagePath) || imagePath.startsWith('data:')) return 'url'
+  return 'server'
+}
+
 export function productUpdatePayload(values: ProductFormValues): ProductPayload {
+  // image_path is deliberately absent: the image is managed by the dedicated
+  // upload/remove endpoints, never the JSON create/update body.
   return {
     code: values.code,
     name: values.name,
     category_id: values.category_id,
     reorder_level: values.reorder_level,
     unit_of_measure: values.unit_of_measure,
-    image_path: values.image_path || undefined,
     is_active: values.is_active,
   }
 }

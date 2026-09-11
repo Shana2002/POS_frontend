@@ -24,7 +24,8 @@ export type ProductFormValues = {
   cost_price?: string
   reorder_level: string
   unit_of_measure: string
-  image_path?: string
+  image_file?: File | null
+  image_removed?: boolean
   is_active: boolean
 }
 

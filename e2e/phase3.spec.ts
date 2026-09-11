@@ -56,3 +56,51 @@ test('a non-cost role sees no cost placeholder or catalogue write actions', asyn
   await expect(page.getByRole('button', { name: 'Change price' })).not.toBeVisible()
   await expect(page.getByRole('button', { name: 'Edit product' })).not.toBeVisible()
 })
+
+// A real 1x1 PNG, so the authenticated blob fetch decodes into a renderable image.
+const PNG_BUFFER = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
+
+test('the grid shows a server-uploaded image, fetched authenticated', async ({ page }) => {
+  const withImage = { ...product, image_path: 'product_p1_ab12cd34ef56.png' }
+  await signIn(page, salesUser)
+  await page.route('**/api/v1/products?**', async (route) => route.fulfill({ json: { success: true, data: [withImage], meta: { page: 1, pages: 1, total: 1 } } }))
+  await page.route('**/api/v1/product-categories?**', async (route) => route.fulfill({ json: { success: true, data: productCategories, meta: { page: 1, pages: 1 } } }))
+  await page.route('**/api/v1/products/p1/image', async (route) => route.fulfill({ contentType: 'image/png', body: PNG_BUFFER }))
+  await page.goto('/products')
+  await expect(page.locator('.product-image img')).toBeVisible()
+})
+
+test('ADMIN attaches an image file when creating a product', async ({ page }) => {
+  const created = { ...product, id: 'p2', code: 'OX-02', name: 'Aloe Cream', is_low: false }
+  const withImage = { ...created, image_path: 'product_p2_ab12cd34ef56.png' }
+  let uploaded = false
+  await signIn(page, adminUser)
+  await page.route('**/api/v1/products?**', async (route) => route.fulfill({ json: { success: true, data: [product], meta: { page: 1, pages: 1, total: 1 } } }))
+  await page.route('**/api/v1/product-categories?**', async (route) => route.fulfill({ json: { success: true, data: productCategories, meta: { page: 1, pages: 1 } } }))
+  await page.route('**/api/v1/products', async (route) => {
+    if (route.request().method() !== 'POST') return route.fallback()
+    return route.fulfill({ json: { success: true, data: created } })
+  })
+  await page.route('**/api/v1/products/p2/image', async (route) => {
+    if (route.request().method() === 'POST') {
+      uploaded = true
+      return route.fulfill({ json: { success: true, data: withImage } })
+    }
+    return route.fulfill({ contentType: 'image/png', body: PNG_BUFFER })
+  })
+  await page.route('**/api/v1/products/p2', async (route) => route.fulfill({ json: { success: true, data: withImage } }))
+
+  await page.goto('/products')
+  await page.getByRole('button', { name: 'Create product' }).click()
+  await page.getByLabel('Code').fill('OX-02')
+  await page.getByLabel('Name').fill('Aloe Cream')
+  await page.locator('.admin-form select').selectOption('cat1')
+  await page.getByLabel('Reorder level').fill('5')
+  await page.getByLabel('Unit of measure').fill('PCS')
+  await page.getByLabel('Product image file').setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: PNG_BUFFER })
+  await page.getByRole('button', { name: 'Save product' }).click()
+
+  await expect(page).toHaveURL(/\/products\/p2$/)
+  expect(uploaded).toBe(true)
+  await expect(page.locator('.product-overview-image img')).toBeVisible()
+})

@@ -18,6 +18,7 @@ import {
   EmptyState,
   Pagination,
 } from "../../components/AdminUI";
+import { ProductImage } from "../../components/ProductImage";
 import { downloadBlob } from "../../lib/download";
 import { formatMoney } from "../../lib/money";
 import { useBranches } from "../admin/adminApi";
@@ -1219,11 +1220,11 @@ export function PosPage() {
                   key={product.id}
                 >
                   <div className="pos-product-image">
-                    {product.image_path ? (
-                      <img src={product.image_path} alt="" />
-                    ) : (
-                      <span>{product.code.slice(0, 2)}</span>
-                    )}
+                    <ProductImage
+                      product={product}
+                      alt=""
+                      fallback={<span>{product.code.slice(0, 2)}</span>}
+                    />
                   </div>
                   <div>
                     <small>
