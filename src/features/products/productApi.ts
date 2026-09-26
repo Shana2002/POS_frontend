@@ -91,18 +91,19 @@ export function useProductMovement(id: string, filters: MovementFilters) {
   return useQuery({
     queryKey: productKeys.movement(id, filters),
     queryFn: async () => {
-      const response = await request<ProductMovement>({
+      // The endpoint sends the ledger rows in `data` and the window summary
+      // (opening/closing balance, totals, movement_count) in `meta` — combine
+      // them into the ProductMovement shape the pages expect.
+      const response = await request<ProductMovement["rows"]>({
         method: "GET",
         url: `/products/${id}/movement`,
         params: buildMovementParams(filters),
       });
-      if (response.data) return response.data;
-
-      const payload = response.response.data as unknown as {
-        meta: Omit<ProductMovement, "rows">;
-        rows: ProductMovement["rows"];
-      };
-      return { ...payload.meta, rows: payload.rows };
+      const summary = response.meta as unknown as Omit<
+        ProductMovement,
+        "rows"
+      >;
+      return { ...summary, rows: response.data };
     },
     enabled: Boolean(id),
   });

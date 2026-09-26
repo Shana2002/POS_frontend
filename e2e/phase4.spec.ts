@@ -17,7 +17,9 @@ test('ADMIN searches customers and reviews a reconciled URL-filtered statement',
   await signIn(page)
   await page.route('**/api/v1/customers?**', (route) => route.fulfill({ json: { success: true, data: [customer], meta: { page: 1, pages: 1, total: 1 } } }))
   await page.route('**/api/v1/customers/c1', (route) => route.fulfill({ json: { success: true, data: customer } }))
-  await page.route('**/api/v1/customers/c1/statement*', (route) => route.fulfill({ json: { success: true, data: { customer, from: '2026-08-01', to: '2026-08-14', branch_id: 'b1', opening_balance: '100.00', entries: [{ date: '2026-08-10', type: 'INVOICE', reference: 'INV-1', id: 'e1', debit: '25.00', credit: '0.00', running_balance: '125.00' }], closing_balance: '125.00' } } }))
+  // Real wire shape (api_test_results.json): ledger rows in `rows` with a
+  // `balance`, summary fields alongside, and money as JSON numbers.
+  await page.route('**/api/v1/customers/c1/statement*', (route) => route.fulfill({ json: { success: true, data: { customer_id: 'c1', customer_code: 'CUS-001', customer_name: 'Lanka Retail', from: '2026-08-01', to: '2026-08-14', branch_id: 'b1', opening_balance: '100.00', closing_balance: '125.00', total_invoiced: '25.00', total_paid: '0.00', row_count: 1, rows: [{ date: '2026-08-10', type: 'INVOICE', description: 'Invoice INV-1', reference: 'INV-1', invoice_id: 'i1', invoice_no: 'INV-1', payment_id: null, debit: '25.00', credit: '0.00', balance: '125.00' }] } } }))
 
   await page.goto('/customers?search=lanka')
   await expect(page.getByLabel('Search customers')).toHaveValue('lanka')
