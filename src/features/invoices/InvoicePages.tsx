@@ -18,11 +18,12 @@ import {
   EmptyState,
   Pagination,
 } from "../../components/AdminUI";
+import { ProductImage } from "../../components/ProductImage";
 import { downloadBlob } from "../../lib/download";
 import { formatMoney } from "../../lib/money";
 import { useBranches } from "../admin/adminApi";
 import { useCustomers } from "../partners/partnerApi";
-import { useProducts } from "../products/productApi";
+import { useProductCategories, useProducts } from "../products/productApi";
 import {
   getInvoicePdf,
   serializeInvoiceLineMutation,
@@ -983,7 +984,7 @@ export function PosPage() {
   );
   const products = useProducts({
     search,
-    category,
+    category_id: category,
     active: "true",
     per_page: "100",
   });
@@ -993,9 +994,10 @@ export function PosPage() {
     auth.user!.role,
   );
   const branchId = branchLocked ? auth.user?.branch_id || "" : selectedBranch;
-  const categories = [
-    ...new Set((products.data?.rows || []).map((row) => row.category)),
-  ];
+  // Chips come from the managed category list, not the filtered product rows,
+  // so selecting one category doesn't collapse the rest of the chips.
+  const categories = useProductCategories({ active: "true", per_page: "200" })
+    .data?.rows || [];
   const cart = draft?.lines || [];
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
@@ -1181,13 +1183,13 @@ export function PosPage() {
           >
             All
           </button>
-          {categories.map((value) => (
+          {categories.map((option) => (
             <button
-              className={category === value ? "active" : ""}
-              key={value}
-              onClick={() => setCategory(value)}
+              className={category === option.id ? "active" : ""}
+              key={option.id}
+              onClick={() => setCategory(option.id)}
             >
-              {value}
+              {option.name}
             </button>
           ))}
         </div>
@@ -1218,15 +1220,15 @@ export function PosPage() {
                   key={product.id}
                 >
                   <div className="pos-product-image">
-                    {product.image_path ? (
-                      <img src={product.image_path} alt="" />
-                    ) : (
-                      <span>{product.code.slice(0, 2)}</span>
-                    )}
+                    <ProductImage
+                      product={product}
+                      alt=""
+                      fallback={<span>{product.code.slice(0, 2)}</span>}
+                    />
                   </div>
                   <div>
                     <small>
-                      {product.code} · {product.category}
+                      {product.code} · {product.category_name}
                     </small>
                     <strong>{product.name}</strong>
                     {product.unit_price && (
@@ -1441,28 +1443,24 @@ export function PosPage() {
         pending={mutations.update.isPending || mutations.issue.isPending}
         onCancel={() => setIssueConfirm(false)}
         onConfirm={() => {
-          // if (draft) {
-          //   const persistAndIssue = discountPreview
-          //     ? mutations.update
-          //         .mutateAsync({
-          //           id: draft.id,
-          //           payload: buildDiscountPayload(
-          //             discountMode,
-          //             discountValue,
-          //             draft.gross_amount,
-          //           ),
-          //         })
-          //         .then(() => mutations.issue.mutateAsync(draft.id))
-          //     : mutations.issue.mutateAsync(draft.id);
-          //   void persistAndIssue.then((result) => {
-          //     setDraft(result.invoice);
-          //     setIssueConfirm(false);
-          //     navigate(`/invoices/${result.invoice.id}`);
-          //   });
-          // }
           if (!draft) return;
-          console.log(draft?.discount_amount)
-          void mutations.issue.mutateAsync(draft.id).then((result) => {
+          // A locally applied discount (preview-only until now) is persisted
+          // with the invoice just before issuing, so the issued document
+          // carries it — see e2e/phase7.spec.ts "applies percentage or flat
+          // discounts".
+          const persistAndIssue = discountPreview
+            ? mutations.update
+                .mutateAsync({
+                  id: draft.id,
+                  payload: buildDiscountPayload(
+                    discountMode,
+                    discountValue,
+                    draft.gross_amount,
+                  ),
+                })
+                .then(() => mutations.issue.mutateAsync(draft.id))
+            : mutations.issue.mutateAsync(draft.id);
+          void persistAndIssue.then((result) => {
               setDraft(result.invoice);
               setIssueConfirm(false);
               navigate(`/invoices/${result.invoice.id}`);

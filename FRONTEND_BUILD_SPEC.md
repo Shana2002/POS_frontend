@@ -357,11 +357,14 @@ criteria and tests pass.
 - Price history timeline/table
 - Price-change dialog
 - Product movement history tab
+- Product-category administration (list, create, edit, deactivate) — added with
+  the phase 13 backend work that made category a user-managed master
 
 ### Endpoints
 
 - All `/products` endpoints
 - `GET /products/:id/movement`
+- All `/product-categories` endpoints
 
 ### Behavior
 
@@ -369,6 +372,10 @@ criteria and tests pass.
 - Product codes become read-only when backend rules reject recoding.
 - Price changes are separate from ordinary product edits.
 - Movement history shows opening/closing balance and a running-balance table.
+- Product create/edit picks a category from the managed master; inactive
+  categories are not offered.
+- Category renames and deactivations refresh the product list, which embeds
+  category code and name.
 
 ### Acceptance
 
@@ -376,6 +383,8 @@ criteria and tests pass.
 - Price changes refresh product detail and history.
 - Movement filters and pagination are URL-backed.
 - Product deactivation requires confirmation.
+- Deactivated categories stay readable on existing products but cannot be
+  assigned to new or edited ones.
 
 ---
 
@@ -768,6 +777,7 @@ Recommended frontend routes:
 /users
 /branches
 /products
+/product-categories
 /products/:id
 /customers
 /customers/:id

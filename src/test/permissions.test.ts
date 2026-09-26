@@ -47,6 +47,15 @@ describe('role navigation policy', () => {
     })
   })
 
+  it('restricts product-category management to head-office roles while products stay open', () => {
+    const managers: UserRole[] = ['ADMIN', 'HO_STAFF']
+    roles.forEach((role) => {
+      expect(canAccess('/products', role)).toBe(true)
+      expect(canAccess('/product-categories', role)).toBe(managers.includes(role))
+      expect(getNavigationForRole(role).some((item) => item.path === '/product-categories')).toBe(managers.includes(role))
+    })
+  })
+
   it('uses one policy for navigation and direct route access', () => {
     navigation.forEach((item) => {
       expect(getRolesForPath(item.path)).toEqual(item.roles)
@@ -54,6 +63,7 @@ describe('role navigation policy', () => {
     })
 
     expect(getRolesForPath('/expense-categories')).toEqual(['ADMIN', 'HO_STAFF', 'ACCOUNTS'])
+    expect(getRolesForPath('/product-categories')).toEqual(['ADMIN', 'HO_STAFF'])
     expect(getRolesForPath('/transfers/new')).toEqual(['ADMIN', 'HO_STAFF', 'BRANCH_MANAGER'])
     expect(getRolesForPath('/reports/profit-loss')).toEqual(['ADMIN', 'HO_STAFF', 'ACCOUNTS'])
   })

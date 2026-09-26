@@ -51,7 +51,7 @@ PDF and XLSX successes are raw binary responses, not JSON. Their errors remain J
 
 - `User`: `{id, full_name, email, role, branch_id, phone, is_active, last_login_at, created_at, updated_at}`
 - `Branch`: `{id, code, name, address, manager_id, is_warehouse, invoice_prefix, is_active}`
-- `Product`: `{id, code, name, category, unit_price?, cost_price?, reorder_level, unit_of_measure, image_path, is_active, created_at, updated_at}`. Cost fields are omitted for roles without cost access.
+- `Product`: `{id, code, name, category_id, category_code, category_name, unit_price?, cost_price?, reorder_level, unit_of_measure, image_path, is_active, created_at, updated_at}`. Cost fields are omitted for roles without cost access. `image_path` is a server-generated filename for an uploaded image (fetch it via `GET /products/:id/image`); rows created before uploads may carry a legacy full URL instead.
 - `Customer`: `{id, code, name, contact, email, address, credit_limit, is_active, created_at}`
 - `Supplier`: `{id, code, name, contact, email, address, payment_terms_days, is_active}`
 - `StockMovement`: `{id, movement_date, product_id, product_code, product_name, branch_id, branch_code, movement_type, qty_in, qty_out, signed_qty, unit_cost?, reference_type, reference_id, notes, created_by, created_at}`
@@ -90,14 +90,22 @@ All list endpoints return an array plus pagination `meta` unless noted otherwise
 | `GET /branches/:id` | — | 200 | `Branch` |
 | `PUT /branches/:id` | Partial branch fields | 200 | `Branch` |
 | `DELETE /branches/:id` | Soft-deactivate | 200 | `Branch` |
-| `GET /products` | `search, category, active, page, per_page` | 200 | `[Product]` |
+| `GET /products` | `search, category_id, active, page, per_page` | 200 | `[Product]` |
 | `POST /products` | Product fields | 201 | `Product` |
 | `GET /products/:id` | — | 200 | `Product` |
 | `PUT /products/:id` | Partial product fields | 200 | `Product` |
 | `DELETE /products/:id` | Soft-deactivate | 200 | `Product` |
 | `GET /products/:id/price-history` | Pagination | 200 | `[{id,product_id,price,cost_price,effective_from,changed_by,created_at}]` |
 | `POST /products/:id/price` | `{price,cost_price?,effective_from?}` | 200 | `Product` |
+| `POST /products/:id/image` | Multipart, one `image` file part (PNG/JPEG/GIF/WEBP, ≤ 5 MB) | 200 | `Product` |
+| `GET /products/:id/image` | — | 200 | Raw image bytes (any authenticated role) |
+| `DELETE /products/:id/image` | — | 200 | `Product` |
 | `GET /products/:id/movement` | `branch_id?,from?,to?,type?,page?,per_page?` | 200 | `{product_id,branch_id,from,to,opening_balance,total_in,total_out,closing_balance,movement_count,rows:[{movement:StockMovement,running_balance}]}` |
+| `GET /product-categories` | `search, active, page, per_page` | 200 | `[{id,code,name,is_active}]` |
+| `POST /product-categories` | `{code,name,is_active?}` | 201 | `{id,code,name,is_active}` |
+| `GET /product-categories/:id` | — | 200 | Product category |
+| `PUT /product-categories/:id` | Partial category fields | 200 | Product category |
+| `DELETE /product-categories/:id` | Soft-deactivate | 200 | Product category |
 | `GET /customers` | Search/pagination filters | 200 | `[Customer]` |
 | `POST /customers` | Customer fields | 201 | `Customer` |
 | `GET /customers/:id` | — | 200 | `Customer` |
